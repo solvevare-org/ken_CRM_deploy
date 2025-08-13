@@ -4,7 +4,7 @@ import { useAppContext } from '../context/AppContext';
 import { PageLayout } from '../components/layout/PageLayout';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
-import { Lock, CreditCard, Calendar, User } from 'lucide-react';
+import { Lock, CreditCard } from 'lucide-react';
 
 export function CheckoutPage() {
   const [cardNumber, setCardNumber] = useState('');
@@ -36,7 +36,7 @@ export function CheckoutPage() {
       title="Complete Your Purchase"
       subtitle="Secure payment processing with 256-bit SSL encryption"
       showBackButton
-      onBack={() => navigate('/verification')}
+      onBack={() => navigate('/payment')}
     >
       <div className="space-y-8">
         {/* Order Summary */}

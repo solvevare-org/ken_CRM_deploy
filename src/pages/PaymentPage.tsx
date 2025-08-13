@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import { PageLayout } from '../components/layout/PageLayout';
@@ -8,27 +8,21 @@ import { CreditCard, Check } from 'lucide-react';
 export function PaymentPage() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { state, dispatch } = useAppContext();
+  const { dispatch } = useAppContext();
 
   const plans = [
     {
-      name: 'Basic',
-      price: '$9',
+      name: 'All-in-One',
+      price: '$80',
       period: 'per month',
-      features: ['5 Workspaces', '10 Team Members', 'Basic Support', '10GB Storage']
-    },
-    {
-      name: 'Pro',
-      price: '$29',
-      period: 'per month',
-      features: ['Unlimited Workspaces', '50 Team Members', 'Priority Support', '100GB Storage', 'Advanced Analytics'],
-      popular: true
-    },
-    {
-      name: 'Enterprise',
-      price: '$99',
-      period: 'per month',
-      features: ['Everything in Pro', 'Unlimited Team Members', '24/7 Support', '1TB Storage', 'Custom Integrations']
+      features: [
+        'Unlimited Workspaces',
+        'Unlimited Team Members',
+        '24/7 Priority Support',
+        '1TB Storage',
+        'Advanced Analytics',
+        'Custom Integrations'
+      ]
     }
   ];
 
@@ -38,64 +32,50 @@ export function PaymentPage() {
     setTimeout(() => {
       dispatch({ type: 'SET_PAYMENT_COMPLETED', payload: true });
       setLoading(false);
-      navigate('/verification');
+      navigate('/checkout');
     }, 2000);
   };
 
   return (
     <PageLayout
       title="Choose Your Plan"
-      subtitle="Select the plan that best fits your needs"
+      subtitle="Select the plan for your account"
       showBackButton
-      onBack={() => navigate(-1)}
+      onBack={() => navigate('/verification')}
     >
-      <div className="space-y-8">
-        <div className="grid md:grid-cols-3 gap-6">
-          {plans.map((plan, index) => (
+      <div className="space-y-8 text-black">
+        <div className="grid md:grid-cols-1 gap-6">
+          {plans.map((plan) => (
             <div
               key={plan.name}
-              className={`relative p-6 rounded-xl border-2 transition-all duration-200 ${
-                plan.popular 
-                  ? 'border-blue-500 bg-blue-50 shadow-lg scale-105' 
-                  : 'border-gray-200 hover:border-gray-300'
-              }`}
+              className="relative p-6 rounded-xl border-2 border-blue-500 bg-blue-50 shadow-lg scale-105"
             >
-              {plan.popular && (
-                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                  <span className="bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-medium">
-                    Most Popular
-                  </span>
-                </div>
-              )}
-              
               <div className="text-center mb-6">
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">{plan.name}</h3>
-                <div className="text-3xl font-bold text-gray-900 mb-1">{plan.price}</div>
-                <div className="text-gray-600">{plan.period}</div>
+                <h3 className="text-xl font-semibold text-black mb-2">{plan.name}</h3>
+                <div className="text-3xl font-bold text-black mb-1">{plan.price}</div>
+                <div className="text-black">{plan.period}</div>
               </div>
-              
               <ul className="space-y-3 mb-6">
                 {plan.features.map((feature, idx) => (
                   <li key={idx} className="flex items-center space-x-3">
                     <Check className="w-5 h-5 text-green-500 flex-shrink-0" />
-                    <span className="text-gray-700">{feature}</span>
+                    <span className="text-black">{feature}</span>
                   </li>
                 ))}
               </ul>
             </div>
           ))}
         </div>
-        
         <div className="bg-gray-50 p-6 rounded-lg">
           <div className="flex items-center space-x-3 mb-4">
-            <CreditCard className="w-6 h-6 text-gray-600" />
-            <h3 className="text-lg font-semibold text-gray-900">Payment Method</h3>
+            <CreditCard className="w-6 h-6 text-black" />
+            <h3 className="text-lg font-semibold text-black">Payment Method</h3>
           </div>
-          <p className="text-gray-600 mb-4">
+          <p className="text-black mb-4">
             Secure payment processing with industry-standard encryption. 
             You can cancel anytime with no hidden fees.
           </p>
-          <div className="flex items-center space-x-2 text-sm text-gray-500">
+          <div className="flex items-center space-x-2 text-sm text-black">
             <span>💳 Credit Card</span>
             <span>•</span>
             <span>🏦 Bank Transfer</span>
@@ -103,7 +83,6 @@ export function PaymentPage() {
             <span>📱 Digital Wallets</span>
           </div>
         </div>
-        
         <Button 
           onClick={handleProceedToPay}
           className="w-full"

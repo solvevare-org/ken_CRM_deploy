@@ -19,7 +19,7 @@ export function VerificationPage() {
     setTimeout(() => {
       dispatch({ type: 'SET_VERIFICATION_COMPLETED', payload: true });
       setLoading(false);
-      navigate('/checkout');
+      navigate('/payment');
     }, 1500);
   };
 
@@ -31,20 +31,19 @@ export function VerificationPage() {
   return (
     <PageLayout
       title="Verify Your Account"
-      subtitle="We've sent a verification code to your email address"
+      subtitle="We've sent a verification code to your account"
       showBackButton
-      onBack={() => navigate('/payment')}
+      onBack={() => navigate('/account-verification-options')}
     >
-      <div className="space-y-8">
+      <div className="space-y-8 text-black">
         <div className="text-center">
           <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <Shield className="w-8 h-8 text-blue-600" />
           </div>
-          <p className="text-gray-600">
-            Enter the 6-digit verification code we sent to your email to secure your account
+          <p className="text-black">
+            Enter the 6-digit verification code we sent to your account to secure your account
           </p>
         </div>
-
         <form onSubmit={handleVerify} className="space-y-6">
           <Input
             label="Verification Code"
@@ -56,7 +55,6 @@ export function VerificationPage() {
             className="text-center text-2xl font-mono tracking-widest"
             required
           />
-          
           <Button 
             type="submit"
             className="w-full"
@@ -67,9 +65,8 @@ export function VerificationPage() {
             Verify Account
           </Button>
         </form>
-
         <div className="text-center">
-          <p className="text-gray-600 mb-2">Didn't receive the code?</p>
+          <p className="text-black mb-2">Didn't receive the code?</p>
           <button
             onClick={handleResendCode}
             className="text-blue-600 hover:text-blue-800 font-medium transition-colors flex items-center space-x-2 mx-auto"

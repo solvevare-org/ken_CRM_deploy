@@ -1,20 +1,25 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
-import { Upload, Building2, Image as ImageIcon, Settings, Users, Tag, Plus, X } from 'lucide-react';
+import { Upload, Building2, Image as ImageIcon, Users, Tag, Plus, X } from 'lucide-react';
 
-export function WorkspaceDetailsPage() {
+export function WorkspaceEditPage() {
+  const { id } = useParams();
   const navigate = useNavigate();
-  const { dispatch } = useAppContext();
+  const { state, dispatch } = useAppContext();
+  const workspace = state.workspaces?.find(ws => ws.id === id);
 
-  const [workspaceImage, setWorkspaceImage] = useState<string | null>(null);
-  const [workspaceName, setWorkspaceName] = useState('');
-  const [primaryColor] = useState('#3B82F6');
-  const [secondaryColor] = useState('#10B981');
-  const [memberCount, setMemberCount] = useState(1);
-  const [roleTags, setRoleTags] = useState<string[]>(['Admin', 'Manager', 'Agent', 'Trainee']);
+  if (!workspace) {
+    return <div className="p-8 text-center text-gray-500">Workspace not found.</div>;
+  }
+
+  const [workspaceImage, setWorkspaceImage] = useState<string | null>(workspace.image || null);
+  const [workspaceName, setWorkspaceName] = useState(workspace.name);
+  const [description, setDescription] = useState(workspace.description);
+  const [memberCount, setMemberCount] = useState(workspace.memberCount || 1);
+  const [roleTags, setRoleTags] = useState<string[]>(workspace.roleTags || ['Admin', 'Manager', 'Agent', 'Trainee']);
   const [newRoleTag, setNewRoleTag] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -40,67 +45,47 @@ export function WorkspaceDetailsPage() {
     setRoleTags(roleTags.filter(tag => tag !== tagToRemove));
   };
 
-  const handleContinue = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSave = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     setLoading(true);
-    
     setTimeout(() => {
-      const newWorkspace = {
-        id: Date.now().toString(),
-        name: workspaceName || 'My Workspace',
-    description: '',
-        type: 'main' as const,
-        createdAt: new Date().toISOString(),
-        memberCount: memberCount,
-        activeListings: 0,
-        totalDeals: 0,
-        monthlyRevenue: 0,
-        image: workspaceImage || undefined,
-        primaryColor,
-        secondaryColor,
-        roleTags,
-        isWhitelabel: true
-      };
-      
-      dispatch({ type: 'ADD_WORKSPACE', payload: newWorkspace });
+      dispatch({
+        type: 'UPDATE_WORKSPACE',
+        payload: {
+          ...workspace,
+          name: workspaceName,
+          description,
+          image: workspaceImage === null ? undefined : workspaceImage,
+          memberCount,
+          roleTags
+        }
+      });
       setLoading(false);
-      navigate('/workspace-created');
-    }, 1500);
+      navigate(`/workspace/${workspace.id}`);
+    }, 1000);
   };
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="max-w-2xl w-full">
         <div className="bg-white rounded-xl p-8 shadow-sm border border-gray-200">
-          {/* Header */}
           <div className="text-center mb-8">
             <div className="w-16 h-16 bg-blue-100 rounded-xl flex items-center justify-center mx-auto mb-4">
               <Building2 className="w-8 h-8 text-blue-600" />
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">
-              Customize Your Workspace
-            </h1>
-            <p className="text-gray-600">
-              {/* Removed isFirstTime conditional rendering */}
-                ? "Set up your workspace with standard organization template"
-                : "Configure your workspace with whitelabel options"
-              
-            </p>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">Edit Workspace</h1>
           </div>
-
-          <form onSubmit={handleContinue} className="space-y-8">
+          <form onSubmit={handleSave} className="space-y-8">
             {/* Workspace Summary Preview */}
             <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-xl border border-blue-200">
               <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                <Settings className="w-5 h-5 mr-2 text-blue-600" />
+                <Users className="w-5 h-5 mr-2 text-blue-600" />
                 Workspace Summary
               </h3>
               <div className="grid md:grid-cols-3 gap-4 text-sm">
                 <div className="bg-white p-3 rounded-lg">
                   <div className="text-gray-600 mb-1">Name</div>
-                  <div className="font-medium text-gray-900">
-                    {workspaceName || 'My Workspace'}
-                  </div>
+                  <div className="font-medium text-gray-900">{workspaceName}</div>
                 </div>
                 <div className="bg-white p-3 rounded-lg">
                   <div className="text-gray-600 mb-1">Members</div>
@@ -111,13 +96,10 @@ export function WorkspaceDetailsPage() {
                 </div>
                 <div className="bg-white p-3 rounded-lg">
                   <div className="text-gray-600 mb-1">Role Tags</div>
-                  <div className="font-medium text-gray-900">
-                    {roleTags.length} roles defined
-                  </div>
+                  <div className="font-medium text-gray-900">{roleTags.length} roles defined</div>
                 </div>
               </div>
             </div>
-
             {/* Workspace Name */}
             <div>
               <Input
@@ -129,12 +111,19 @@ export function WorkspaceDetailsPage() {
                 required
               />
             </div>
-
+            {/* Workspace Description */}
+            <div>
+              <Input
+                label="Description"
+                type="text"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Enter workspace description..."
+              />
+            </div>
             {/* Workspace Image */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-4">
-                Workspace Logo
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-4">Workspace Logo</label>
               <div className="flex items-center space-x-6">
                 <div className="w-20 h-20 bg-gray-100 rounded-xl flex items-center justify-center border-2 border-dashed border-gray-300">
                   {workspaceImage ? (
@@ -160,12 +149,11 @@ export function WorkspaceDetailsPage() {
                 </div>
               </div>
             </div>
-
             {/* Member Count */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 <Users className="w-4 h-4 inline mr-2" />
-                Initial Member Count
+                Member Count
               </label>
               <div className="flex items-center space-x-4">
                 <button
@@ -175,9 +163,7 @@ export function WorkspaceDetailsPage() {
                 >
                   -
                 </button>
-                <span className="text-lg font-semibold text-gray-900 min-w-[2rem] text-center">
-                  {memberCount}
-                </span>
+                <span className="text-lg font-semibold text-gray-900 min-w-[2rem] text-center">{memberCount}</span>
                 <button
                   type="button"
                   onClick={() => setMemberCount(memberCount + 1)}
@@ -188,15 +174,12 @@ export function WorkspaceDetailsPage() {
                 <span className="text-sm text-gray-500">members</span>
               </div>
             </div>
-
             {/* Role Tags */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-4">
                 <Tag className="w-4 h-4 inline mr-2" />
                 Role Tags
               </label>
-              
-              {/* Add new role tag */}
               <div className="flex items-center space-x-2 mb-4">
                 <Input
                   type="text"
@@ -221,8 +204,6 @@ export function WorkspaceDetailsPage() {
                   <Plus className="w-4 h-4" />
                 </Button>
               </div>
-              
-              {/* Display role tags */}
               <div className="flex flex-wrap gap-2">
                 {roleTags.map((tag, index) => (
                   <div
@@ -240,35 +221,19 @@ export function WorkspaceDetailsPage() {
                   </div>
                 ))}
               </div>
-              
               {roleTags.length === 0 && (
                 <p className="text-sm text-gray-500 italic">No role tags added yet</p>
               )}
             </div>
-
-            {/* Whitelabel Configuration section removed as requested */}
-
-            {/* Template Notice */}
-            {/* Template Notice removed (was conditional on isFirstTime) */}
-
-            <Button 
-              type="submit"
-              className="w-full"
-              loading={loading}
-            >
-              Create Workspace
-            </Button>
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" onClick={() => navigate(-1)}>
+                Cancel
+              </Button>
+              <Button size="sm" type="submit" loading={loading}>
+                Save
+              </Button>
+            </div>
           </form>
-
-          {/* Back Button */}
-          <div className="text-center mt-6">
-            <button
-              onClick={() => navigate('/checkout')}
-              className="text-gray-500 hover:text-gray-700 font-medium transition-colors"
-            >
-              ← Back
-            </button>
-          </div>
         </div>
       </div>
     </div>

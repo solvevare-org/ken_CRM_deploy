@@ -10,12 +10,12 @@ export function SignupOptionsPage() {
 
   const handleIndividualSignup = () => {
     dispatch({ type: 'SET_SIGNUP_TYPE', payload: 'individual' });
-    navigate('/payment');
+    navigate('/account-verification-options');
   };
 
   const handleOrganizationSignup = () => {
     dispatch({ type: 'SET_SIGNUP_TYPE', payload: 'organization' });
-    navigate('/team-invite');
+    navigate('/account-verification-options');
   };
 
   return (

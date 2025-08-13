@@ -7,6 +7,7 @@ type AppAction =
   | { type: 'SET_PAYMENT_COMPLETED'; payload: boolean }
   | { type: 'SET_VERIFICATION_COMPLETED'; payload: boolean }
   | { type: 'ADD_WORKSPACE'; payload: Workspace }
+  | { type: 'UPDATE_WORKSPACE'; payload: Workspace }
   | { type: 'SET_CURRENT_WORKSPACE'; payload: Workspace }
   | { type: 'SET_WORKSPACE_NAME'; payload: string }
   | { type: 'LOGOUT' };
@@ -14,31 +15,7 @@ type AppAction =
 const initialState: AppState = {
   user: null,
   currentWorkspace: null,
-  workspaces: [
-    // Sample workspaces for demonstration
-    {
-      id: 'demo-1',
-      name: 'Real Estate Pro',
-      description: 'Main workspace for real estate operations and client management',
-      type: 'main',
-      createdAt: '2024-01-15T10:30:00Z',
-      memberCount: 5,
-      activeListings: 24,
-      totalDeals: 18,
-      monthlyRevenue: 45000
-    },
-    {
-      id: 'demo-2',
-      name: 'Investment Properties',
-      description: 'Dedicated workspace for investment property analysis and management',
-      type: 'main',
-      createdAt: '2024-02-20T14:15:00Z',
-      memberCount: 3,
-      activeListings: 12,
-      totalDeals: 8,
-      monthlyRevenue: 28000
-    }
-  ],
+  workspaces: [],
   signupType: null,
   paymentCompleted: false,
   verificationCompleted: false,
@@ -66,6 +43,12 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return { 
         ...state, 
         workspaces: [...state.workspaces, action.payload],
+        currentWorkspace: action.payload
+      };
+    case 'UPDATE_WORKSPACE':
+      return {
+        ...state,
+        workspaces: state.workspaces.map(ws => ws.id === action.payload.id ? action.payload : ws),
         currentWorkspace: action.payload
       };
     case 'SET_CURRENT_WORKSPACE':

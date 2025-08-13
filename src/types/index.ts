@@ -24,6 +24,7 @@ export interface Workspace {
   image?: string;
   primaryColor?: string;
   secondaryColor?: string;
+  roleTags?: string[];
   isWhitelabel?: boolean;
 }
 
