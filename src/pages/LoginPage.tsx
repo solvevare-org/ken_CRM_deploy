@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
+import { BASE_URL } from '../config';
 import { PageLayout } from '../components/layout/PageLayout';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
@@ -10,30 +11,35 @@ export function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
   const { dispatch } = useAppContext();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    
-    // Simulate login - in real app, this would call an API
-    setTimeout(() => {
-      const user = {
-        id: '1',
-        email,
-        name: 'Alex Johnson',
-        type: 'individual' as const,
-        isFirstTime: false, // Returning user
-        role: 'admin' as const,
-        phone: '+1 (555) 123-4567',
-        license: 'RE123456789',
-        brokerage: 'Premium Realty Group'
-      };
+    setError(null);
+    try {
+      const response = await fetch(`${BASE_URL}/api/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+      if (response.status !== 200) {
+        setError('Authentication failed. Please check your credentials.');
+        setLoading(false);
+        return;
+      }
+      const user = await response.json();
       dispatch({ type: 'SET_USER', payload: user });
       setLoading(false);
       navigate('/workspace');
-    }, 2000);
+    } catch (err) {
+      setError('An error occurred. Please try again.');
+      setLoading(false);
+    }
   };
 
   const handleSignup = () => {
@@ -42,10 +48,10 @@ export function LoginPage() {
 
   return (
     <PageLayout
-      title={<span className="text-black">Welcome Back</span>}
-      subtitle={<span className="text-black">Sign in to your premium workspace and unlock unlimited possibilities</span>}
+      title="Welcome Back"
+      subtitle="Sign in to your premium workspace and unlock unlimited possibilities"
     >
-  <div className="space-y-8 text-black">
+      <div className="space-y-8 text-black">
         {/* Login Form */}
         <form onSubmit={handleLogin} className="space-y-6">
           <Input
@@ -56,7 +62,6 @@ export function LoginPage() {
             icon={<Mail size={20} />}
             required
           />
-          
           <Input
             label="Password"
             type="password"
@@ -65,7 +70,6 @@ export function LoginPage() {
             icon={<Lock size={20} />}
             required
           />
-          
           <div className="flex items-center justify-between text-sm">
             <label className="flex items-center space-x-2 cursor-pointer">
               <input type="checkbox" className="rounded border-black/30 bg-black/10 text-blue-500 focus:ring-blue-500/30" />
@@ -75,22 +79,22 @@ export function LoginPage() {
               Forgot password?
             </button>
           </div>
-          
+          {error && (
+            <div className="text-red-600 text-sm font-medium text-center mb-2">{error}</div>
+          )}
           <Button 
             type="submit" 
             variant="primary"
             size="lg"
             className="w-full"
             loading={loading}
-            magnetic
-            glow
+            // magnetic
+            // glow
           >
             <Zap size={20} />
             Login
           </Button>
         </form>
-        
-        
         {/* Signup Link */}
         <div className="flex items-center justify-center mt-6">
           <span className="text-black mr-2">Don't have an account?</span>
@@ -103,7 +107,6 @@ export function LoginPage() {
             Sign Up
           </Button>
         </div>
-        
         {/* Features Preview */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-12 pt-8 border-t border-black/10">
           <div className="text-center space-y-2">

@@ -4,8 +4,8 @@ import { Button } from '../ui/Button';
 
 interface PageLayoutProps {
   children: React.ReactNode;
-  title?: string;
-  subtitle?: string;
+  title?: React.ReactNode;
+  subtitle?: React.ReactNode;
   showBackButton?: boolean;
   onBack?: () => void;
 }

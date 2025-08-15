@@ -1,37 +1,80 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAppContext } from '../context/AppContext';
+import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { clearSignupData } from '../store/slices/signupSlice';
 import { PageLayout } from '../components/layout/PageLayout';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Shield, Mail } from 'lucide-react';
+import { BASE_URL } from '../config';
 
 export function VerificationPage() {
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
-  const { dispatch } = useAppContext();
+  const dispatch = useAppDispatch();
+  const { 
+    userType, 
+    email, 
+    password, 
+    firstName, 
+    lastName, 
+    phone, 
+    verificationMethod
+  } = useAppSelector(state => state.signup);
 
-  const handleVerify = (e: React.FormEvent) => {
+  const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError(null);
     
-    setTimeout(() => {
-      dispatch({ type: 'SET_VERIFICATION_COMPLETED', payload: true });
+    try {
+      // Verify the verification code
+      console.log(email, code, verificationMethod);
+      const response = await fetch(`${BASE_URL}/api/auth/verify-signup`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email,
+          code,
+          method: verificationMethod
+        })
+      });
+
+      if (response.ok) {
+        // Clear signup data after successful verification
+        dispatch(clearSignupData());
+        
+        // Navigate to payment page
+        navigate('/payment');
+      } else {
+        const errorData = await response.json();
+        setError(errorData.message || 'Invalid verification code. Please try again.');
+      }
+    } catch (err) {
+      setError('Network error. Please check your connection and try again.');
+    } finally {
       setLoading(false);
-      navigate('/payment');
-    }, 1500);
+    }
   };
 
   const handleResendCode = () => {
     // Simulate resending verification code
-    alert('Verification code sent to your email!');
+    alert('Verification code sent to your account!');
   };
+
+  // Redirect if no signup data is available
+  if (!userType || !email || !password || !firstName || !lastName) {
+    navigate('/signup-options');
+    return null;
+  }
 
   return (
     <PageLayout
       title="Verify Your Account"
-      subtitle="We've sent a verification code to your account"
+      subtitle={`We've sent a verification code to your ${verificationMethod}`}
       showBackButton
       onBack={() => navigate('/account-verification-options')}
     >
@@ -41,17 +84,24 @@ export function VerificationPage() {
             <Shield className="w-8 h-8 text-blue-600" />
           </div>
           <p className="text-black">
-            Enter the 6-digit verification code we sent to your account to secure your account
+            Enter the 5-digit verification code we sent to your {verificationMethod} to secure your account
           </p>
         </div>
+        
+        {error && (
+          <div className="text-red-600 text-sm text-center bg-red-50 p-3 rounded-lg">
+            {error}
+          </div>
+        )}
+        
         <form onSubmit={handleVerify} className="space-y-6">
           <Input
             label="Verification Code"
             type="text"
             value={code}
             onChange={(e) => setCode(e.target.value)}
-            placeholder="Enter 6-digit code"
-            maxLength={6}
+            placeholder="Enter 5-digit code"
+            maxLength={5}
             className="text-center text-2xl font-mono tracking-widest"
             required
           />
@@ -59,7 +109,7 @@ export function VerificationPage() {
             type="submit"
             className="w-full"
             loading={loading}
-            disabled={code.length !== 6}
+            disabled={code.length !== 5 || loading}
             size="lg"
           >
             Verify Account

@@ -1,20 +1,21 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAppContext } from '../context/AppContext';
+import { useAppDispatch } from '../store/hooks';
+import { setUserType } from '../store/slices/signupSlice';
 import { Button } from '../components/ui/Button';
 import { User, Building2, ArrowRight } from 'lucide-react';
 
 export function SignupOptionsPage() {
   const navigate = useNavigate();
-  const { dispatch } = useAppContext();
+  const dispatch = useAppDispatch();
 
   const handleIndividualSignup = () => {
-    dispatch({ type: 'SET_SIGNUP_TYPE', payload: 'individual' });
+    dispatch(setUserType('Realtor'));
     navigate('/account-verification-options');
   };
 
   const handleOrganizationSignup = () => {
-    dispatch({ type: 'SET_SIGNUP_TYPE', payload: 'organization' });
+    dispatch(setUserType('Organization'));
     navigate('/account-verification-options');
   };
 
