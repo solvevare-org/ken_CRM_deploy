@@ -29,9 +29,9 @@ function App() {
             <Route path="/payment" element={<PaymentPage />} />
             <Route path="/verification" element={<VerificationPage />} />
             <Route path="/checkout" element={<CheckoutPage />} />
+            <Route path="/workspace-name-setup" element={<WorkspaceNameSetupPage />} />
             <Route path="/workspace-details" element={<WorkspaceDetailsPage />} />
             <Route path="/workspace-created" element={<WorkspaceCreatedPage />} />
-            <Route path="/workspace-name-setup" element={<WorkspaceNameSetupPage />} />
             <Route path="/workspace" element={<WorkspacePage />} />
             <Route path="/workspace/:id" element={<WorkspaceViewPage />} />
             <Route path="/workspace/:id/edit" element={<WorkspaceEditPage />} />
