@@ -33,4 +33,4 @@ jobs:
 
     - name: Deploy to VPS
       run: |
-        rsync -avz --delete ./build/ ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/var/www/crm-vire-s/html/
+        rsync -avz --delete ./dist/ ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/var/www/crm-vire-s/html/
