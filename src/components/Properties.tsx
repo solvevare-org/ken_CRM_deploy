@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Search, Filter, MapPin, Bed, Bath, Square, Heart, Phone, Mail } from 'lucide-react';
-import { Property } from '../types';
+import { ClientProperty } from '../types';
 import { mockProperties } from '../data/mockData';
 
 interface PropertiesProps {
@@ -11,7 +11,7 @@ const Properties: React.FC<PropertiesProps> = ({ onToggleFavorite }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedType, setSelectedType] = useState('all');
   const [maxPrice, setMaxPrice] = useState(1500000);
-  const [properties] = useState<Property[]>(mockProperties);
+  const [properties] = useState<ClientProperty[]>(mockProperties);
 
   const filteredProperties = useMemo(() => {
     return properties.filter(property => {

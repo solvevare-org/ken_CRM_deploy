@@ -1,6 +1,6 @@
-import { Property, ChatMessage, Notification, UserSettings } from '../types';
+import { ClientProperty, ChatMessage, Notification, UserSettings } from '../types';
 
-export const mockProperties: Property[] = [
+export const mockProperties: ClientProperty[] = [
   {
     id: '1',
     title: 'Modern Downtown Apartment',

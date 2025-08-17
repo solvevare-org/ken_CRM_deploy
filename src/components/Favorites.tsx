@@ -1,9 +1,9 @@
 import React from 'react';
 import { MapPin, Bed, Bath, Square, Heart, Phone, Mail, Home } from 'lucide-react';
-import { Property } from '../types';
+import { ClientProperty } from '../types';
 
 interface FavoritesProps {
-  favoriteProperties: Property[];
+  favoriteProperties: ClientProperty[];
   onToggleFavorite: (propertyId: string) => void;
 }
 
