@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AppProvider } from './context/AppContext';
+import { Menu } from 'lucide-react';
 
 // Auth and Workspace Management Components
 import { LoginPage } from './pages/LoginPage';
@@ -26,8 +27,25 @@ import ClientNotifications from './components/Notifications';
 import Settings from './components/Settings';
 import { mockProperties } from './data/mockData';
 
-// Realtor portal UI
-import { Sidebar } from './components/layout/Sidebar';
+
+
+// Realtor portal UI (pages)
+import Sidebar from './pages/Sidebar';
+import Dashboard from './pages/Dashboard';
+import Properties from './pages/Properties';
+import Clients from './pages/Clients';
+import Analytics from './pages/Analytics';
+import Leads from './pages/Leads';
+import Tasks from './pages/Tasks';
+import Documents from './pages/Documents';
+import Marketing from './pages/Marketing';
+import Calendar from './pages/Calendar';
+import FollowupTemplating from './pages/FollowupTemplating';
+import Followup from './pages/Followup';
+import LeadForm from './pages/LeadForm';
+import LeadFormTemplating from './pages/LeadFormTemplating';
+import RealtorNotifications from './pages/Notifications';
+import Messaging from './pages/Messaging';
 
 const WorkspaceListPage = () => <div>All Workspaces Page</div>;
 
@@ -82,28 +100,71 @@ const ClientPortal: React.FC<{ initialPage?: string }> = ({ initialPage = 'prope
 // Realtor Portal (prefixed routes under /realtor)
 const RealtorPortal: React.FC<{ initialSection?: string }> = ({ initialSection = 'dashboard' }) => {
   const [activeSection, setActiveSection] = useState(initialSection);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const renderSection = () => {
+    switch (activeSection) {
+      case 'dashboard':
+        return <Dashboard />;
+      case 'properties':
+        return <Properties />;
+      case 'clients':
+        return <Clients />;
+      case 'analytics':
+        return <Analytics />;
+      case 'leads':
+        return <Leads />;
+      case 'tasks':
+        return <Tasks />;
+      case 'documents':
+        return <Documents />;
+      case 'marketing':
+        return <Marketing />;
+      case 'calendar':
+        return <Calendar />;
+      case 'followup-templating':
+        return <FollowupTemplating />;
+      case 'followup':
+        return <Followup />;
+      case 'leadform':
+        return <LeadForm />;
+      case 'leadform-templating':
+        return <LeadFormTemplating />;
+      case 'notifications':
+        return <RealtorNotifications onNavigate={setActiveSection} />;
+      case 'messaging':
+        return <Messaging />;
+      default:
+        return <Dashboard />;
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      <Sidebar activeTab={activeSection} onTabChange={setActiveSection} />
-      <main className="flex-1">
-        <div className="border-b bg-white px-4 py-3">{/* Top bar placeholder */}</div>
-        <div className="p-4">
-          {activeSection === 'dashboard' && <div>Realtor Dashboard</div>}
-          {activeSection === 'properties' && <div>Realtor Properties</div>}
-          {activeSection === 'clients' && <div>Realtor Clients</div>}
-          {activeSection === 'analytics' && <div>Realtor Analytics</div>}
-          {activeSection === 'leads' && <div>Realtor Leads</div>}
-          {activeSection === 'tasks' && <div>Realtor Tasks</div>}
-          {activeSection === 'documents' && <div>Realtor Documents</div>}
-          {activeSection === 'marketing' && <div>Realtor Marketing</div>}
-          {activeSection === 'calendar' && <div>Realtor Calendar</div>}
-          {activeSection === 'followup-templating' && <div>Realtor Follow-up Templating</div>}
-          {activeSection === 'followup' && <div>Realtor Follow-up</div>}
-          {activeSection === 'leadform' && <div>Realtor Lead Form</div>}
-          {activeSection === 'leadform-templating' && <div>Realtor Lead Form Templating</div>}
-          {activeSection === 'notifications' && <div>Realtor Notifications</div>}
-          {activeSection === 'messaging' && <div>Realtor Messaging</div>}
+    <div className="min-h-screen bg-gray-50">
+      <Sidebar 
+        activeSection={activeSection}
+        setActiveSection={setActiveSection}
+        isMobileMenuOpen={isMobileMenuOpen}
+        setIsMobileMenuOpen={setIsMobileMenuOpen}
+      />
+      <main className="lg:ml-64">
+        {/* Mobile header */}
+        <div className="lg:hidden bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
+          <button
+            onClick={() => setIsMobileMenuOpen(true)}
+            className="p-2 rounded-lg hover:bg-gray-100"
+          >
+            <Menu className="w-6 h-6 text-gray-600" />
+          </button>
+          <div className="flex items-center space-x-2">
+            <div className="w-6 h-6 bg-blue-600 rounded-md flex items-center justify-center">
+              <span className="text-white text-xs font-bold">R</span>
+            </div>
+            <span className="font-semibold text-gray-900">RealtyPro</span>
+          </div>
+          <div className="w-10"></div>
         </div>
+        {renderSection()}
       </main>
     </div>
   );
@@ -130,6 +191,7 @@ function App() {
             <Route path="/workspace/:id" element={<WorkspaceViewPage />} />
             <Route path="/workspace/:id/edit" element={<WorkspaceEditPage />} />
             <Route path="/view-all-workspaces" element={<WorkspaceListPage />} />
+            {/* Empty page for now */}
 
             {/* Client portal routes (prefixed) */}
             <Route path="/client" element={<ClientPortal />} />
