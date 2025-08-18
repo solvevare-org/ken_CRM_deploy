@@ -4,6 +4,7 @@ import { useAppContext } from '../context/AppContext';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Upload, Building2, Image as ImageIcon, Settings, Users, Tag, Plus, X } from 'lucide-react';
+import { CRM_BASE_DOMAIN } from '../config';
 
 export function WorkspaceDetailsPage() {
   const navigate = useNavigate();
@@ -64,7 +65,20 @@ export function WorkspaceDetailsPage() {
       
       dispatch({ type: 'ADD_WORKSPACE', payload: newWorkspace });
       setLoading(false);
-      navigate('/workspace-created');
+      // Redirect to tenant subdomain in dev to simulate wildcard DNS
+      const slug = (workspaceName || 'my-workspace')
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '') || 'workspace';
+      const protocol = window.location.protocol || 'http:';
+      const port = window.location.port ? `:${window.location.port}` : '';
+      const targetUrl = `${protocol}//${slug}.${CRM_BASE_DOMAIN}${port}/`;
+      if (window.location.hostname !== `${slug}.${CRM_BASE_DOMAIN}`) {
+        window.location.assign(targetUrl);
+      } else {
+        navigate('/workspace-created');
+      }
     }, 1500);
   };
 
