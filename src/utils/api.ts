@@ -1,5 +1,5 @@
 import axios, { AxiosError } from "axios";
-import { ApiErrorResponse } from "../types/workspaceTypes";
+import { ApiErrorResponse } from "../types";
 
 // Configure axios defaults
 const api = axios.create({

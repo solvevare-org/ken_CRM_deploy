@@ -1,15 +1,15 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAppContext } from '../context/AppContext';
-import { BASE_URL } from '../config';
-import { PageLayout } from '../components/layout/PageLayout';
-import { Button } from '../components/ui/Button';
-import { Input } from '../components/ui/Input';
-import { Mail, Lock, Sparkles, Zap } from 'lucide-react';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAppContext } from "../context/AppContext";
+import { BASE_URL } from "../config";
+import { PageLayout } from "../components/layout/PageLayout";
+import { Button } from "../components/ui/Button";
+import { Input } from "../components/ui/Input";
+import { Mail, Lock, Sparkles, Zap } from "lucide-react";
 
 export function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
@@ -21,29 +21,31 @@ export function LoginPage() {
     setError(null);
     try {
       const response = await fetch(`${BASE_URL}/api/auth/login`, {
-        method: 'POST',
+        method: "POST",
+        credentials: "include",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ email, password }),
       });
       if (response.status !== 200) {
-        setError('Authentication failed. Please check your credentials.');
+        setError("Authentication failed. Please check your credentials.");
         setLoading(false);
         return;
       }
       const user = await response.json();
-      dispatch({ type: 'SET_USER', payload: user });
+      localStorage.setItem("token", user.data?.token);
+      dispatch({ type: "SET_USER", payload: user });
       setLoading(false);
-      navigate('/workspace');
+      navigate("/workspace");
     } catch (err) {
-      setError('An error occurred. Please try again.');
+      setError("An error occurred. Please try again.");
       setLoading(false);
     }
   };
 
   const handleSignup = () => {
-    navigate('/signup-options');
+    navigate("/signup-options");
   };
 
   return (
@@ -72,18 +74,26 @@ export function LoginPage() {
           />
           <div className="flex items-center justify-between text-sm">
             <label className="flex items-center space-x-2 cursor-pointer">
-              <input type="checkbox" className="rounded border-black/30 bg-black/10 text-blue-500 focus:ring-blue-500/30" />
+              <input
+                type="checkbox"
+                className="rounded border-black/30 bg-black/10 text-blue-500 focus:ring-blue-500/30"
+              />
               <span className="text-black/80">Remember me</span>
             </label>
-            <button type="button" className="text-blue-700 hover:text-blue-900 font-medium transition-colors">
+            <button
+              type="button"
+              className="text-blue-700 hover:text-blue-900 font-medium transition-colors"
+            >
               Forgot password?
             </button>
           </div>
           {error && (
-            <div className="text-red-600 text-sm font-medium text-center mb-2">{error}</div>
+            <div className="text-red-600 text-sm font-medium text-center mb-2">
+              {error}
+            </div>
           )}
-          <Button 
-            type="submit" 
+          <Button
+            type="submit"
             variant="primary"
             size="lg"
             className="w-full"

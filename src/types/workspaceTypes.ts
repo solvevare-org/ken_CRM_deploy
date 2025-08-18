@@ -60,10 +60,3 @@ export interface WorkspaceState {
 export interface RootState {
   workspace: WorkspaceState;
 }
-
-// Error handling helper
-export interface ApiErrorResponse {
-  message: string;
-  statusCode?: number;
-  errors?: string[];
-}

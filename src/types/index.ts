@@ -2,10 +2,10 @@ export interface User {
   id: string;
   email: string;
   name: string;
-  type: 'individual' | 'organization';
+  type: "individual" | "organization";
   isFirstTime: boolean;
   avatar?: string;
-  role: 'agent' | 'broker' | 'admin' | 'manager';
+  role: "agent" | "broker" | "admin" | "manager";
   phone?: string;
   license?: string;
   brokerage?: string;
@@ -15,7 +15,7 @@ export interface Workspace {
   id: string;
   name: string;
   description: string;
-  type: 'main' | 'sub';
+  type: "main" | "sub";
   createdAt: string;
   memberCount: number;
   activeListings: number;
@@ -38,7 +38,7 @@ export interface Deal {
   clientName: string;
   agent: string;
   value: number;
-  status: 'negotiation' | 'under_contract' | 'closing' | 'closed' | 'cancelled';
+  status: "negotiation" | "under_contract" | "closing" | "closed" | "cancelled";
   stage: string;
   probability: number;
   expectedCloseDate: string;
@@ -50,7 +50,7 @@ export interface AppState {
   user: User | null;
   currentWorkspace: Workspace | null;
   workspaces: Workspace[];
-  signupType: 'individual' | 'organization' | null;
+  signupType: "individual" | "organization" | null;
   paymentCompleted: boolean;
   verificationCompleted: boolean;
   leads: Lead[];
@@ -68,8 +68,8 @@ export interface ClientProperty {
   area: number;
   image: string;
   description: string;
-  type: 'house' | 'apartment' | 'condo' | 'townhouse';
-  status: 'available' | 'pending' | 'sold';
+  type: "house" | "apartment" | "condo" | "townhouse";
+  status: "available" | "pending" | "sold";
   isFavorited: boolean;
   agent: {
     name: string;
@@ -82,7 +82,7 @@ export interface ChatMessage {
   id: string;
   content: string;
   timestamp: Date;
-  sender: 'client' | 'agent';
+  sender: "client" | "agent";
   senderName: string;
 }
 
@@ -91,7 +91,7 @@ export interface Notification {
   title: string;
   message: string;
   timestamp: Date;
-  type: 'info' | 'success' | 'warning' | 'error';
+  type: "info" | "success" | "warning" | "error";
   read: boolean;
 }
 
@@ -122,8 +122,8 @@ export interface RealtorProperty {
   bedrooms: number;
   bathrooms: number;
   sqft: number;
-  status: 'active' | 'pending' | 'sold' | 'draft';
-  type: 'house' | 'condo' | 'townhouse' | 'land';
+  status: "active" | "pending" | "sold" | "draft";
+  type: "house" | "condo" | "townhouse" | "land";
   image: string;
   dateAdded: Date;
   commission: number;
@@ -134,8 +134,8 @@ export interface Client {
   name: string;
   email: string;
   phone: string;
-  type: 'buyer' | 'seller' | 'both';
-  status: 'active' | 'inactive' | 'potential';
+  type: "buyer" | "seller" | "both";
+  status: "active" | "inactive" | "potential";
   lastContact: Date;
   totalValue: number;
   properties: string[];
@@ -145,10 +145,10 @@ export interface Transaction {
   id: string;
   propertyId: string;
   clientId: string;
-  type: 'sale' | 'listing' | 'showing';
+  type: "sale" | "listing" | "showing";
   amount: number;
   date: Date;
-  status: 'completed' | 'pending' | 'cancelled';
+  status: "completed" | "pending" | "cancelled";
 }
 
 export interface Analytics {
@@ -166,9 +166,21 @@ export interface Lead {
   name: string;
   email: string;
   phone: string;
-  source: 'website' | 'referral' | 'social' | 'advertising' | 'walk-in' | 'other';
-  status: 'new' | 'contacted' | 'qualified' | 'nurturing' | 'converted' | 'lost';
-  interestedIn: 'buying' | 'selling' | 'renting' | 'investing';
+  source:
+    | "website"
+    | "referral"
+    | "social"
+    | "advertising"
+    | "walk-in"
+    | "other";
+  status:
+    | "new"
+    | "contacted"
+    | "qualified"
+    | "nurturing"
+    | "converted"
+    | "lost";
+  interestedIn: "buying" | "selling" | "renting" | "investing";
   budget?: number;
   preferredLocation?: string;
   notes: string;
@@ -181,7 +193,13 @@ export interface Lead {
 export interface Document {
   id: string;
   name: string;
-  type: 'contract' | 'listing' | 'disclosure' | 'inspection' | 'appraisal' | 'other';
+  type:
+    | "contract"
+    | "listing"
+    | "disclosure"
+    | "inspection"
+    | "appraisal"
+    | "other";
   propertyId?: string;
   clientId?: string;
   url: string;
@@ -194,9 +212,9 @@ export interface Task {
   id: string;
   title: string;
   description: string;
-  type: 'follow-up' | 'showing' | 'paperwork' | 'marketing' | 'other';
-  priority: 'low' | 'medium' | 'high' | 'urgent';
-  status: 'pending' | 'in-progress' | 'completed' | 'cancelled';
+  type: "follow-up" | "showing" | "paperwork" | "marketing" | "other";
+  priority: "low" | "medium" | "high" | "urgent";
+  status: "pending" | "in-progress" | "completed" | "cancelled";
   dueDate: Date;
   assignedTo: string;
   propertyId?: string;
@@ -208,8 +226,8 @@ export interface Task {
 export interface MarketingCampaign {
   id: string;
   name: string;
-  type: 'email' | 'social' | 'print' | 'online' | 'direct-mail';
-  status: 'draft' | 'active' | 'paused' | 'completed';
+  type: "email" | "social" | "print" | "online" | "direct-mail";
+  status: "draft" | "active" | "paused" | "completed";
   propertyIds: string[];
   targetAudience: string;
   budget: number;
@@ -224,14 +242,20 @@ export interface MarketingCampaign {
 export interface Appointment {
   id: string;
   title: string;
-  type: 'showing' | 'listing' | 'consultation' | 'closing' | 'inspection' | 'other';
+  type:
+    | "showing"
+    | "listing"
+    | "consultation"
+    | "closing"
+    | "inspection"
+    | "other";
   propertyId?: string;
   clientId?: string;
   startTime: Date;
   endTime: Date;
   location: string;
   notes?: string;
-  status: 'scheduled' | 'confirmed' | 'completed' | 'cancelled' | 'no-show';
+  status: "scheduled" | "confirmed" | "completed" | "cancelled" | "no-show";
   attendees: string[];
 }
 
@@ -248,7 +272,14 @@ export interface Commission {
     referral?: number;
   };
   netCommission: number;
-  status: 'pending' | 'paid' | 'disputed';
+  status: "pending" | "paid" | "disputed";
   closingDate: Date;
   paidDate?: Date;
+}
+
+// Error handling helper
+export interface ApiErrorResponse {
+  message: string;
+  statusCode?: number;
+  errors?: string[];
 }

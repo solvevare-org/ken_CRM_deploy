@@ -1,114 +1,64 @@
-import React, { useState } from 'react';
-import { Search, Plus, Phone, Mail, User, Calendar, Filter, Star, TrendingUp } from 'lucide-react';
+import React, { useEffect, useState } from "react";
+import {
+  Search,
+  Plus,
+  Phone,
+  Mail,
+  User,
+  Calendar,
+  Users,
+  UserPlus,
+  TrendingUp,
+  Star,
+} from "lucide-react";
+import { useAppDispatch, useAppSelector } from "../store/hooks";
+import { GenerateFormLinkRequest } from "../types/leadFormLinkTypes";
+import { generateFormLink } from "../store/slices/leadFormLinkSlice";
+import { fetchRealtorLeads, selectLeads } from "../store/slices/realtorSlice";
+import { UrlModal } from "../components/UrlModel";
+// import { Lead } from "../types/leadTypes";
 
 const Leads: React.FC = () => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [sourceFilter, setSourceFilter] = useState('all');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [sourceFilter, setSourceFilter] = useState("all");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [url, setUrl] = useState("");
+  const [linkData] = useState<GenerateFormLinkRequest>({
+    formId: "689a3c955abd6e0c5659f594",
+    tag: "Twitter",
+  });
 
-  const leads = [
-    {
-      id: '1',
-      name: 'Jennifer Martinez',
-      email: 'jennifer.martinez@email.com',
-      phone: '(555) 123-4567',
-      source: 'website',
-      status: 'new',
-      interestedIn: 'buying',
-      budget: 450000,
-      preferredLocation: 'Downtown',
-      notes: 'Looking for 2-3 bedroom condo, first-time buyer',
-      createdAt: new Date('2024-01-22'),
-      nextFollowUp: new Date('2024-01-25')
-    },
-    {
-      id: '2',
-      name: 'David Thompson',
-      email: 'david.thompson@email.com',
-      phone: '(555) 987-6543',
-      source: 'referral',
-      status: 'qualified',
-      interestedIn: 'selling',
-      budget: 0,
-      preferredLocation: 'Suburbs',
-      notes: 'Wants to sell family home, moving to another state',
-      createdAt: new Date('2024-01-20'),
-      lastContact: new Date('2024-01-21'),
-      nextFollowUp: new Date('2024-01-24')
-    },
-    {
-      id: '3',
-      name: 'Lisa Chen',
-      email: 'lisa.chen@email.com',
-      phone: '(555) 456-7890',
-      source: 'social',
-      status: 'nurturing',
-      interestedIn: 'buying',
-      budget: 750000,
-      preferredLocation: 'Waterfront',
-      notes: 'High-end buyer, looking for luxury properties',
-      createdAt: new Date('2024-01-18'),
-      lastContact: new Date('2024-01-22'),
-      nextFollowUp: new Date('2024-01-26')
-    },
-    {
-      id: '4',
-      name: 'Robert Wilson',
-      email: 'robert.wilson@email.com',
-      phone: '(555) 321-0987',
-      source: 'advertising',
-      status: 'contacted',
-      interestedIn: 'investing',
-      budget: 300000,
-      preferredLocation: 'Various',
-      notes: 'Looking for rental properties, cash buyer',
-      createdAt: new Date('2024-01-15'),
-      lastContact: new Date('2024-01-19'),
-      nextFollowUp: new Date('2024-01-23')
+  const dispatch = useAppDispatch();
+  const leads = useAppSelector(selectLeads);
+
+  useEffect(() => {
+    if (!leads || leads.length === 0) {
+      dispatch(fetchRealtorLeads());
     }
-  ];
+  }, [leads, dispatch]);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'new':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'contacted':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'qualified':
-        return 'bg-emerald-100 text-emerald-800 border-emerald-200';
-      case 'nurturing':
-        return 'bg-purple-100 text-purple-800 border-purple-200';
-      case 'converted':
-        return 'bg-green-100 text-green-800 border-green-200';
-      case 'lost':
-        return 'bg-red-100 text-red-800 border-red-200';
-      default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
-  };
+  const filteredLeads = leads.filter((lead) => {
+    const searchString = Object.values(lead.submittedData || {})
+      .join(" ")
+      .toLowerCase();
 
-  const getSourceColor = (source: string) => {
-    switch (source) {
-      case 'website':
-        return 'bg-blue-50 text-blue-700';
-      case 'referral':
-        return 'bg-emerald-50 text-emerald-700';
-      case 'social':
-        return 'bg-purple-50 text-purple-700';
-      case 'advertising':
-        return 'bg-orange-50 text-orange-700';
-      default:
-        return 'bg-gray-50 text-gray-700';
-    }
-  };
+    const matchesSearch = searchString.includes(searchTerm.toLowerCase());
+    const matchesStatus =
+      statusFilter === "all" || lead.tag.toLowerCase() === statusFilter;
+    const matchesSource =
+      sourceFilter === "all" ||
+      (lead.capture_tag || "").toLowerCase() === sourceFilter;
 
-  const filteredLeads = leads.filter(lead => {
-    const matchesSearch = lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         lead.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || lead.status === statusFilter;
-    const matchesSource = sourceFilter === 'all' || lead.source === sourceFilter;
     return matchesSearch && matchesStatus && matchesSource;
   });
+
+  const generateLeadFormLink = async () => {
+    const res = await dispatch(generateFormLink(linkData)).unwrap();
+    console.log(res, "res");
+    setUrl(res.shareableUrl);
+    setIsModalOpen(true);
+  };
 
   return (
     <div className="p-4 lg:p-6 space-y-4 lg:space-y-6">
@@ -116,9 +66,14 @@ const Leads: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-xl lg:text-2xl font-bold text-gray-900">Leads</h1>
-          <p className="text-sm lg:text-base text-gray-600 mt-1">Manage and track potential clients</p>
+          <p className="text-sm lg:text-base text-gray-600 mt-1">
+            Manage and track potential clients
+          </p>
         </div>
-        <button className="mt-4 sm:mt-0 inline-flex items-center px-3 lg:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm lg:text-base">
+        <button
+          onClick={generateLeadFormLink}
+          className="mt-4 sm:mt-0 inline-flex items-center px-3 lg:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm lg:text-base"
+        >
           <Plus className="w-4 h-4 mr-2" />
           Add Lead
         </button>
@@ -147,7 +102,9 @@ const Leads: React.FC = () => {
         <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Conversion Rate</p>
+              <p className="text-sm font-medium text-gray-600">
+                Conversion Rate
+              </p>
               <p className="text-2xl font-bold text-gray-900">18%</p>
             </div>
             <TrendingUp className="w-8 h-8 text-purple-600" />
@@ -156,7 +113,9 @@ const Leads: React.FC = () => {
         <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Follow-ups Due</p>
+              <p className="text-sm font-medium text-gray-600">
+                Follow-ups Due
+              </p>
               <p className="text-2xl font-bold text-gray-900">8</p>
             </div>
             <Calendar className="w-8 h-8 text-orange-600" />
@@ -206,89 +165,115 @@ const Leads: React.FC = () => {
         </div>
       </div>
 
-      {/* Leads List */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Lead
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Contact
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Interest
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Source
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Next Follow-up
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredLeads.map((lead) => (
-                <tr key={lead.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center">
-                        <User className="w-5 h-5 text-gray-600" />
-                      </div>
-                      <div className="ml-4">
-                        <div className="text-sm font-medium text-gray-900">{lead.name}</div>
-                        <div className="text-sm text-gray-500">{lead.preferredLocation}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{lead.email}</div>
-                    <div className="text-sm text-gray-500">{lead.phone}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900 capitalize">{lead.interestedIn}</div>
-                    {lead.budget > 0 && (
-                      <div className="text-sm text-gray-500">${lead.budget.toLocaleString()}</div>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border ${getStatusColor(lead.status)}`}>
-                      {lead.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getSourceColor(lead.source)}`}>
-                      {lead.source}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {lead.nextFollowUp ? lead.nextFollowUp.toLocaleDateString() : '-'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                    <button className="text-blue-600 hover:text-blue-900">
-                      <Phone className="w-4 h-4" />
-                    </button>
-                    <button className="text-blue-600 hover:text-blue-900">
-                      <Mail className="w-4 h-4" />
-                    </button>
-                    <button className="text-blue-600 hover:text-blue-900">
-                      <Calendar className="w-4 h-4" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {/* Leads Table or Empty State */}
+      {leads.length === 0 ? (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-10 flex flex-col items-center justify-center text-center space-y-4">
+          <div className="w-16 h-16 flex items-center justify-center rounded-full bg-blue-50">
+            <UserPlus className="w-8 h-8 text-blue-600" />
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900">
+            No leads available
+          </h3>
+          <p className="text-sm text-gray-500 max-w-sm">
+            You haven’t added any leads yet. Start by creating a new lead to
+            track and manage your potential clients.
+          </p>
+          <button
+            onClick={generateLeadFormLink}
+            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm lg:text-base"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Add Your First Lead
+          </button>
         </div>
-      </div>
+      ) : (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Lead Info
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Source
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Created At
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {filteredLeads.map((lead) => (
+                  <tr key={lead._id} className="hover:bg-gray-50">
+                    {/* Submitted Data */}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900 space-y-1">
+                        {Object.entries(lead.submittedData || {}).map(
+                          ([key, value]) => (
+                            <div key={key}>
+                              <span className="font-medium capitalize">
+                                {key}:
+                              </span>{" "}
+                              <span>{String(value)}</span>
+                            </div>
+                          )
+                        )}
+                      </div>
+                    </td>
+
+                    {/* Status */}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full border bg-gray-100 text-gray-800">
+                        {lead.tag}
+                      </span>
+                    </td>
+
+                    {/* Source */}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-gray-50 text-gray-700">
+                        {lead.capture_tag || "Other"}
+                      </span>
+                    </td>
+
+                    {/* Created At */}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {new Date(lead.createdAt).toLocaleDateString()}
+                    </td>
+
+                    {/* Actions */}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                      <button className="text-blue-600 hover:text-blue-900">
+                        <Phone className="w-4 h-4" />
+                      </button>
+                      <button className="text-blue-600 hover:text-blue-900">
+                        <Mail className="w-4 h-4" />
+                      </button>
+                      <button className="text-blue-600 hover:text-blue-900">
+                        <Calendar className="w-4 h-4" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      <UrlModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        url={url}
+        title="Share This Link"
+        description="Copy this URL to share with others"
+      />
     </div>
   );
 };
