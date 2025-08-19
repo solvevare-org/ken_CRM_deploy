@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAppContext } from '../context/AppContext';
-import { Button } from '../components/ui/Button';
-import { Input } from '../components/ui/Input';
+import { useAppContext } from '@/context/AppContext';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
 import { Building2 } from 'lucide-react';
 
 export function WorkspaceNameSetupPage() {

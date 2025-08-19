@@ -1,26 +1,40 @@
-import React, { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { useAppContext } from '../context/AppContext';
-import { Button } from '../components/ui/Button';
-import { Input } from '../components/ui/Input';
-import { Upload, Building2, Image as ImageIcon, Users, Tag, Plus, X } from 'lucide-react';
+import React, { useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { useAppContext } from "@/context/AppContext";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import {
+  Upload,
+  Building2,
+  Image as ImageIcon,
+  Users,
+  Tag,
+  Plus,
+  X,
+} from "lucide-react";
 
 export function WorkspaceEditPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { state, dispatch } = useAppContext();
-  const workspace = state.workspaces?.find(ws => ws.id === id);
+  const workspace = state.workspaces?.find((ws) => ws.id === id);
 
   if (!workspace) {
-    return <div className="p-8 text-center text-gray-500">Workspace not found.</div>;
+    return (
+      <div className="p-8 text-center text-gray-500">Workspace not found.</div>
+    );
   }
 
-  const [workspaceImage, setWorkspaceImage] = useState<string | null>(workspace.image || null);
+  const [workspaceImage, setWorkspaceImage] = useState<string | null>(
+    workspace.image || null
+  );
   const [workspaceName, setWorkspaceName] = useState(workspace.name);
   const [description, setDescription] = useState(workspace.description);
   const [memberCount, setMemberCount] = useState(workspace.memberCount || 1);
-  const [roleTags, setRoleTags] = useState<string[]>(workspace.roleTags || ['Admin', 'Manager', 'Agent', 'Trainee']);
-  const [newRoleTag, setNewRoleTag] = useState('');
+  const [roleTags, setRoleTags] = useState<string[]>(
+    workspace.roleTags || ["Admin", "Manager", "Agent", "Trainee"]
+  );
+  const [newRoleTag, setNewRoleTag] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -37,12 +51,12 @@ export function WorkspaceEditPage() {
   const addRoleTag = () => {
     if (newRoleTag.trim() && !roleTags.includes(newRoleTag.trim())) {
       setRoleTags([...roleTags, newRoleTag.trim()]);
-      setNewRoleTag('');
+      setNewRoleTag("");
     }
   };
 
   const removeRoleTag = (tagToRemove: string) => {
-    setRoleTags(roleTags.filter(tag => tag !== tagToRemove));
+    setRoleTags(roleTags.filter((tag) => tag !== tagToRemove));
   };
 
   const handleSave = (e?: React.FormEvent) => {
@@ -50,15 +64,15 @@ export function WorkspaceEditPage() {
     setLoading(true);
     setTimeout(() => {
       dispatch({
-        type: 'UPDATE_WORKSPACE',
+        type: "UPDATE_WORKSPACE",
         payload: {
           ...workspace,
           name: workspaceName,
           description,
           image: workspaceImage === null ? undefined : workspaceImage,
           memberCount,
-          roleTags
-        }
+          roleTags,
+        },
       });
       setLoading(false);
       navigate(`/workspace/${workspace.id}`);
@@ -73,7 +87,9 @@ export function WorkspaceEditPage() {
             <div className="w-16 h-16 bg-blue-100 rounded-xl flex items-center justify-center mx-auto mb-4">
               <Building2 className="w-8 h-8 text-blue-600" />
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">Edit Workspace</h1>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">
+              Edit Workspace
+            </h1>
           </div>
           <form onSubmit={handleSave} className="space-y-8">
             {/* Workspace Summary Preview */}
@@ -85,7 +101,9 @@ export function WorkspaceEditPage() {
               <div className="grid md:grid-cols-3 gap-4 text-sm">
                 <div className="bg-white p-3 rounded-lg">
                   <div className="text-gray-600 mb-1">Name</div>
-                  <div className="font-medium text-gray-900">{workspaceName}</div>
+                  <div className="font-medium text-gray-900">
+                    {workspaceName}
+                  </div>
                 </div>
                 <div className="bg-white p-3 rounded-lg">
                   <div className="text-gray-600 mb-1">Members</div>
@@ -96,7 +114,9 @@ export function WorkspaceEditPage() {
                 </div>
                 <div className="bg-white p-3 rounded-lg">
                   <div className="text-gray-600 mb-1">Role Tags</div>
-                  <div className="font-medium text-gray-900">{roleTags.length} roles defined</div>
+                  <div className="font-medium text-gray-900">
+                    {roleTags.length} roles defined
+                  </div>
                 </div>
               </div>
             </div>
@@ -123,11 +143,17 @@ export function WorkspaceEditPage() {
             </div>
             {/* Workspace Image */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-4">Workspace Logo</label>
+              <label className="block text-sm font-medium text-gray-700 mb-4">
+                Workspace Logo
+              </label>
               <div className="flex items-center space-x-6">
                 <div className="w-20 h-20 bg-gray-100 rounded-xl flex items-center justify-center border-2 border-dashed border-gray-300">
                   {workspaceImage ? (
-                    <img src={workspaceImage} alt="Workspace" className="w-full h-full object-cover rounded-xl" />
+                    <img
+                      src={workspaceImage}
+                      alt="Workspace"
+                      className="w-full h-full object-cover rounded-xl"
+                    />
                   ) : (
                     <ImageIcon className="w-8 h-8 text-gray-400" />
                   )}
@@ -145,7 +171,9 @@ export function WorkspaceEditPage() {
                       <span className="text-sm text-gray-700">Upload Logo</span>
                     </div>
                   </label>
-                  <p className="text-xs text-gray-500 mt-1">PNG, JPG up to 2MB</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    PNG, JPG up to 2MB
+                  </p>
                 </div>
               </div>
             </div>
@@ -163,7 +191,9 @@ export function WorkspaceEditPage() {
                 >
                   -
                 </button>
-                <span className="text-lg font-semibold text-gray-900 min-w-[2rem] text-center">{memberCount}</span>
+                <span className="text-lg font-semibold text-gray-900 min-w-[2rem] text-center">
+                  {memberCount}
+                </span>
                 <button
                   type="button"
                   onClick={() => setMemberCount(memberCount + 1)}
@@ -188,7 +218,7 @@ export function WorkspaceEditPage() {
                   placeholder="Add new role..."
                   className="flex-1"
                   onKeyPress={(e) => {
-                    if (e.key === 'Enter') {
+                    if (e.key === "Enter") {
                       e.preventDefault();
                       addRoleTag();
                     }
@@ -222,7 +252,9 @@ export function WorkspaceEditPage() {
                 ))}
               </div>
               {roleTags.length === 0 && (
-                <p className="text-sm text-gray-500 italic">No role tags added yet</p>
+                <p className="text-sm text-gray-500 italic">
+                  No role tags added yet
+                </p>
               )}
             </div>
             <div className="flex gap-2">

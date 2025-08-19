@@ -1,8 +1,8 @@
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAppContext } from '../context/AppContext';
-import { Button } from '../components/ui/Button';
+import { useAppContext } from '@/context/AppContext';
+import { Button } from '@/components/ui/Button';
 import { 
   Plus, 
   Settings, 
