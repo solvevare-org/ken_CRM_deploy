@@ -171,53 +171,174 @@ const RealtorPortal: React.FC<{ initialSection?: string }> = ({ initialSection =
 };
 
 function App() {
+  // Check if we're on a workspace subdomain
+  const isWorkspaceSubdomain = () => {
+    const hostname = window.location.hostname;
+    const parts = hostname.split('.');
+    
+    // Check if it's a workspace subdomain (e.g., tenant-1.crm.localhost)
+    if (parts.length >= 3) {
+      const baseDomain = parts.slice(-2).join('.');
+      return baseDomain === 'crm.localhost' && parts[0] !== 'crm';
+    }
+    return false;
+  };
+
+  // Get workspace slug from subdomain (for future use)
+  // const getWorkspaceSlug = () => {
+  //   if (isWorkspaceSubdomain()) {
+  //     return window.location.hostname.split('.')[0];
+  //   }
+  //   return null;
+  // };
+
+  // Protected route wrapper for workspace subdomains
+  const WorkspaceProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+    const token = localStorage.getItem('token');
+    
+    if (!token) {
+      return <LoginPage />;
+    }
+    
+    return <>{children}</>;
+  };
+
   return (
     <AppProvider>
       <Router>
         <div className="min-h-screen bg-gray-50">
           <Routes>
-            {/* Auth/Workspace routes */}
-            <Route path="/" element={<LoginPage />} />
-            <Route path="/signup-options" element={<SignupOptionsPage />} />
-            <Route path="/account-verification-options" element={<AccountVerificationOptionsPage />} />
-            <Route path="/team-invite" element={<TeamInvitePage />} />
-            <Route path="/payment" element={<PaymentPage />} />
-            <Route path="/verification" element={<VerificationPage />} />
-            <Route path="/checkout" element={<CheckoutPage />} />
-            <Route path="/workspace-name-setup" element={<WorkspaceNameSetupPage />} />
-            <Route path="/workspace-details" element={<WorkspaceDetailsPage />} />
-            <Route path="/workspace-created" element={<WorkspaceCreatedPage />} />
-            <Route path="/workspace" element={<WorkspacePage />} />
-            <Route path="/workspace/:id" element={<WorkspaceViewPage />} />
-            <Route path="/workspace/:id/edit" element={<WorkspaceEditPage />} />
-            <Route path="/view-all-workspaces" element={<WorkspaceListPage />} />
-            {/* Empty page for now */}
+            {/* Workspace subdomain routes */}
+            {isWorkspaceSubdomain() ? (
+              <>
+                <Route path="/" element={
+                  <WorkspaceProtectedRoute>
+                    <RealtorPortal />
+                  </WorkspaceProtectedRoute>
+                } />
+                <Route path="/realtor" element={
+                  <WorkspaceProtectedRoute>
+                    <RealtorPortal />
+                  </WorkspaceProtectedRoute>
+                } />
+                <Route path="/realtor/properties" element={
+                  <WorkspaceProtectedRoute>
+                    <RealtorPortal initialSection="properties" />
+                  </WorkspaceProtectedRoute>
+                } />
+                <Route path="/realtor/clients" element={
+                  <WorkspaceProtectedRoute>
+                    <RealtorPortal initialSection="clients" />
+                  </WorkspaceProtectedRoute>
+                } />
+                <Route path="/realtor/analytics" element={
+                  <WorkspaceProtectedRoute>
+                    <RealtorPortal initialSection="analytics" />
+                  </WorkspaceProtectedRoute>
+                } />
+                <Route path="/realtor/leads" element={
+                  <WorkspaceProtectedRoute>
+                    <RealtorPortal initialSection="leads" />
+                  </WorkspaceProtectedRoute>
+                } />
+                <Route path="/realtor/tasks" element={
+                  <WorkspaceProtectedRoute>
+                    <RealtorPortal initialSection="tasks" />
+                  </WorkspaceProtectedRoute>
+                } />
+                <Route path="/realtor/documents" element={
+                  <WorkspaceProtectedRoute>
+                    <RealtorPortal initialSection="documents" />
+                  </WorkspaceProtectedRoute>
+                } />
+                <Route path="/realtor/marketing" element={
+                  <WorkspaceProtectedRoute>
+                    <RealtorPortal initialSection="marketing" />
+                  </WorkspaceProtectedRoute>
+                } />
+                <Route path="/realtor/calendar" element={
+                  <WorkspaceProtectedRoute>
+                    <RealtorPortal initialSection="calendar" />
+                  </WorkspaceProtectedRoute>
+                } />
+                <Route path="/realtor/followup-templating" element={
+                  <WorkspaceProtectedRoute>
+                    <RealtorPortal initialSection="followup-templating" />
+                  </WorkspaceProtectedRoute>
+                } />
+                <Route path="/realtor/followup" element={
+                  <WorkspaceProtectedRoute>
+                    <RealtorPortal initialSection="followup" />
+                  </WorkspaceProtectedRoute>
+                } />
+                <Route path="/realtor/leadform" element={
+                  <WorkspaceProtectedRoute>
+                    <RealtorPortal initialSection="leadform" />
+                  </WorkspaceProtectedRoute>
+                } />
+                <Route path="/realtor/leadform-templating" element={
+                  <WorkspaceProtectedRoute>
+                    <RealtorPortal initialSection="leadform-templating" />
+                  </WorkspaceProtectedRoute>
+                } />
+                <Route path="/realtor/notifications" element={
+                  <WorkspaceProtectedRoute>
+                    <RealtorPortal initialSection="notifications" />
+                  </WorkspaceProtectedRoute>
+                } />
+                <Route path="/realtor/messaging" element={
+                  <WorkspaceProtectedRoute>
+                    <RealtorPortal initialSection="messaging" />
+                  </WorkspaceProtectedRoute>
+                } />
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="*" element={<Navigate to="/realtor" replace />} />
+              </>
+            ) : (
+              <>
+                {/* Main domain routes */}
+                <Route path="/" element={<LoginPage />} />
+                <Route path="/signup-options" element={<SignupOptionsPage />} />
+                <Route path="/account-verification-options" element={<AccountVerificationOptionsPage />} />
+                <Route path="/team-invite" element={<TeamInvitePage />} />
+                <Route path="/payment" element={<PaymentPage />} />
+                <Route path="/verification" element={<VerificationPage />} />
+                <Route path="/checkout" element={<CheckoutPage />} />
+                <Route path="/workspace-name-setup" element={<WorkspaceNameSetupPage />} />
+                <Route path="/workspace-details" element={<WorkspaceDetailsPage />} />
+                <Route path="/workspace-created" element={<WorkspaceCreatedPage />} />
+                <Route path="/workspace" element={<WorkspacePage />} />
+                <Route path="/workspace/:id" element={<WorkspaceViewPage />} />
+                <Route path="/workspace/:id/edit" element={<WorkspaceEditPage />} />
+                <Route path="/view-all-workspaces" element={<WorkspaceListPage />} />
 
-            {/* Client portal routes (prefixed) */}
-            <Route path="/client" element={<ClientPortal />} />
-            <Route path="/client/favorites" element={<ClientPortal initialPage="favorites" />} />
-            <Route path="/client/chat" element={<ClientPortal initialPage="chat" />} />
-            <Route path="/client/notifications" element={<ClientPortal initialPage="notifications" />} />
-            <Route path="/client/settings" element={<ClientPortal initialPage="settings" />} />
+                {/* Client portal routes (prefixed) */}
+                <Route path="/client" element={<ClientPortal />} />
+                <Route path="/client/favorites" element={<ClientPortal initialPage="favorites" />} />
+                <Route path="/client/chat" element={<ClientPortal initialPage="chat" />} />
+                <Route path="/client/notifications" element={<ClientPortal initialPage="notifications" />} />
+                <Route path="/client/settings" element={<ClientPortal initialPage="settings" />} />
 
-            {/* Realtor portal routes (prefixed) */}
-            <Route path="/realtor" element={<RealtorPortal />} />
-            <Route path="/realtor/properties" element={<RealtorPortal initialSection="properties" />} />
-            <Route path="/realtor/clients" element={<RealtorPortal initialSection="clients" />} />
-            <Route path="/realtor/analytics" element={<RealtorPortal initialSection="analytics" />} />
-            <Route path="/realtor/leads" element={<RealtorPortal initialSection="leads" />} />
-            <Route path="/realtor/tasks" element={<RealtorPortal initialSection="tasks" />} />
-            <Route path="/realtor/documents" element={<RealtorPortal initialSection="documents" />} />
-            <Route path="/realtor/marketing" element={<RealtorPortal initialSection="marketing" />} />
-            <Route path="/realtor/calendar" element={<RealtorPortal initialSection="calendar" />} />
-            <Route path="/realtor/followup-templating" element={<RealtorPortal initialSection="followup-templating" />} />
-            <Route path="/realtor/followup" element={<RealtorPortal initialSection="followup" />} />
-            <Route path="/realtor/leadform" element={<RealtorPortal initialSection="leadform" />} />
-            <Route path="/realtor/leadform-templating" element={<RealtorPortal initialSection="leadform-templating" />} />
-            <Route path="/realtor/notifications" element={<RealtorPortal initialSection="notifications" />} />
-            <Route path="/realtor/messaging" element={<RealtorPortal initialSection="messaging" />} />
+                {/* Realtor portal routes (prefixed) */}
+                <Route path="/realtor" element={<RealtorPortal />} />
+                <Route path="/realtor/properties" element={<RealtorPortal initialSection="properties" />} />
+                <Route path="/realtor/clients" element={<RealtorPortal initialSection="clients" />} />
+                <Route path="/realtor/analytics" element={<RealtorPortal initialSection="analytics" />} />
+                <Route path="/realtor/leads" element={<RealtorPortal initialSection="leads" />} />
+                <Route path="/realtor/tasks" element={<RealtorPortal initialSection="tasks" />} />
+                <Route path="/realtor/documents" element={<RealtorPortal initialSection="documents" />} />
+                <Route path="/realtor/marketing" element={<RealtorPortal initialSection="marketing" />} />
+                <Route path="/realtor/calendar" element={<RealtorPortal initialSection="calendar" />} />
+                <Route path="/realtor/followup-templating" element={<RealtorPortal initialSection="followup-templating" />} />
+                <Route path="/realtor/followup" element={<RealtorPortal initialSection="followup" />} />
+                <Route path="/realtor/leadform" element={<RealtorPortal initialSection="leadform" />} />
+                <Route path="/realtor/leadform-templating" element={<RealtorPortal initialSection="leadform-templating" />} />
+                <Route path="/realtor/notifications" element={<RealtorPortal initialSection="notifications" />} />
+                <Route path="/realtor/messaging" element={<RealtorPortal initialSection="messaging" />} />
 
-            <Route path="*" element={<Navigate to="/" replace />} />
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </>
+            )}
           </Routes>
         </div>
       </Router>

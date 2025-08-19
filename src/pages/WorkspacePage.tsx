@@ -1,8 +1,9 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import { Button } from '../components/ui/Button';
+import { BASE_URL, CRM_BASE_DOMAIN } from '../config';
 import { 
   Plus, 
   Settings, 
@@ -11,14 +12,19 @@ import {
   Users, 
   Bell,
   Search,
-  Menu
+  Menu,
+  Check,
+  X,
+  Calendar
 } from 'lucide-react';
 
 export function WorkspacePage() {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  // Removed unused showSignupOptions state
-  // Removed unused viewMode state
+  const [personalWorkspaces, setPersonalWorkspaces] = useState<any[]>([]);
+  const [organizationWorkspaces, setOrganizationWorkspaces] = useState<any[]>([]);
+  const [pendingInvites] = useState<any[]>([]); // Mock data for now
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const { state, dispatch } = useAppContext();
 
@@ -27,12 +33,64 @@ export function WorkspacePage() {
     navigate('/');
   };
 
-  // Removed unused handlers
+  // Fetch workspaces from API
+  useEffect(() => {
+    const fetchWorkspaces = async () => {
+      try {
+        const response = await fetch(`${BASE_URL}/api/workspaces/`, {
+          method: 'GET',
+          credentials: 'include',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Content-Type': 'application/json'
+          }
+        });
 
-  // Removed stats cards
+        if (response.ok) {
+          const result = await response.json();
+          const workspaces = result.data || [];
+          
+          // Separate workspaces by type
+          const personal = workspaces.filter((ws: any) => ws.type === 'personal');
+          const organization = workspaces.filter((ws: any) => ws.type === 'organization');
+          
+          setPersonalWorkspaces(personal);
+          setOrganizationWorkspaces(organization);
+        }
+      } catch (error) {
+        console.error('Error fetching workspaces:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  // Workspaces from context
-  const workspaces = state.workspaces || [];
+    fetchWorkspaces();
+  }, []);
+
+  // Navigate to workspace subdomain
+  const handleWorkspaceClick = (workspace: any) => {
+    const slug = workspace.name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '');
+    
+    const protocol = window.location.protocol;
+    const port = window.location.port ? `:${window.location.port}` : '';
+    const targetUrl = `${protocol}//${slug}.${CRM_BASE_DOMAIN}${port}/realtor`;
+    
+    window.location.assign(targetUrl);
+  };
+
+  // Placeholder handlers for pending invites
+  const handleAcceptInvite = (inviteId: string) => {
+    console.log('Accept invite:', inviteId);
+    // TODO: Implement accept invite logic
+  };
+
+  const handleDeclineInvite = (inviteId: string) => {
+    console.log('Decline invite:', inviteId);
+    // TODO: Implement decline invite logic
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -124,88 +182,237 @@ export function WorkspacePage() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-  {/* Removed stats cards */}
-
-        {/* Workspaces Section */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-8">
-          <div className="p-6 border-b border-gray-200 flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-gray-900">Your Workspaces</h2>
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <span className="ml-3 text-gray-600">Loading workspaces...</span>
           </div>
-          <div className="p-6">
-              {workspaces.length === 0 ? (
-                <div className="text-gray-500">No workspaces created yet.</div>
-              ) : (
-                <>
-                  <div className="flex justify-end mb-4">
-                    <Button size="sm" onClick={() => navigate('/view-all-workspaces')}>
-                      View All
+        ) : (
+          <div className="space-y-8">
+            {/* Personal Workspaces Section */}
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+              <div className="p-6 border-b border-gray-200">
+                <h2 className="text-xl font-semibold text-gray-900">Personal Workspace</h2>
+                <p className="text-sm text-gray-600 mt-1">Your individual workspace for personal projects</p>
+              </div>
+              <div className="p-6">
+                {personalWorkspaces.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Building2 className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-500 mb-4">No personal workspace found</p>
+                    <Button onClick={() => navigate('/workspace-details')}>
+                      Create Personal Workspace
                     </Button>
                   </div>
+                ) : (
                   <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {workspaces.map((ws) => (
-                      <div key={ws.id} className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-colors cursor-pointer">
-                        <div className="flex items-center justify-between mb-3">
-                          <h3 className="font-medium text-gray-900">{ws.name}</h3>
-                          <span className="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800">{ws.type === 'main' ? 'Main' : 'Sub'}</span>
+                    {personalWorkspaces.map((ws) => (
+                      <WorkspaceCard
+                        key={ws._id}
+                        workspace={ws}
+                        onClick={() => handleWorkspaceClick(ws)}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Organization Workspaces Section */}
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+              <div className="p-6 border-b border-gray-200">
+                <h2 className="text-xl font-semibold text-gray-900">Organization Workspaces</h2>
+                <p className="text-sm text-gray-600 mt-1">Shared workspaces for team collaboration</p>
+              </div>
+              <div className="p-6">
+                {organizationWorkspaces.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-500 mb-4">No organization workspaces found</p>
+                    <Button onClick={() => navigate('/workspace-details')}>
+                      Create Organization Workspace
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {organizationWorkspaces.map((ws) => (
+                      <WorkspaceCard
+                        key={ws._id}
+                        workspace={ws}
+                        onClick={() => handleWorkspaceClick(ws)}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Pending Invites Section */}
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+              <div className="p-6 border-b border-gray-200">
+                <h2 className="text-xl font-semibold text-gray-900">Pending Invites</h2>
+                <p className="text-sm text-gray-600 mt-1">Workspace invitations waiting for your response</p>
+              </div>
+              <div className="p-6">
+                {pendingInvites.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Bell className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-500">No pending invites</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {pendingInvites.map((invite) => (
+                      <div key={invite.id} className="border border-gray-200 rounded-lg p-4 flex items-center justify-between">
+                        <div className="flex items-center space-x-4">
+                          <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                            <Building2 className="w-5 h-5 text-blue-600" />
+                          </div>
+                          <div>
+                            <h3 className="font-medium text-gray-900">{invite.workspaceName}</h3>
+                            <p className="text-sm text-gray-600">Invited by {invite.inviterName}</p>
+                            <p className="text-xs text-gray-500">Role: {invite.role}</p>
+                          </div>
                         </div>
-                        <div className="text-sm text-gray-600 mb-2">{ws.description}</div>
-                        <div className="flex items-center space-x-4 text-sm text-gray-600 mb-2">
-                          <div className="flex items-center space-x-1">
-                            <Users className="w-4 h-4" />
-                            <span>{ws.memberCount} members</span>
-                          </div>
-                          <span>•</span>
-                          <span>{new Date(ws.createdAt).toLocaleDateString()}</span>
-                        </div>
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="text-gray-600">Active Listings</span>
-                            <span className="font-medium">{ws.activeListings}</span>
-                          </div>
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="text-gray-600">Total Deals</span>
-                            <span className="font-medium">{ws.totalDeals}</span>
-                          </div>
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="text-gray-600">Monthly Revenue</span>
-                            <span className="font-medium">${ws.monthlyRevenue}</span>
-                          </div>
-                        </div>
-                        <div className="flex justify-end gap-2 mt-4">
-                          <Button size="sm" variant="outline" onClick={() => navigate(`/workspace/${ws.id}`)}>
-                            View
+                        <div className="flex items-center space-x-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleAcceptInvite(invite.id)}
+                            className="text-green-600 border-green-300 hover:bg-green-50"
+                          >
+                            <Check className="w-4 h-4 mr-1" />
+                            Accept
                           </Button>
-                          <Button size="sm" onClick={() => navigate(`/workspace/${ws.id}/edit`)}>
-                            Edit
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleDeclineInvite(invite.id)}
+                            className="text-red-600 border-red-300 hover:bg-red-50"
+                          >
+                            <X className="w-4 h-4 mr-1" />
+                            Decline
                           </Button>
                         </div>
                       </div>
                     ))}
                   </div>
-                </>
-              )}
-          </div>
-        </div>
-
-        {/* Quick Actions */}
-        <div className="grid md:grid-cols-2 gap-6">
-          <div 
-            onClick={() => navigate('/signup-options')}
-            className="bg-white rounded-lg p-6 shadow-sm border border-gray-200 cursor-pointer hover:border-blue-300 transition-colors"
-          >
-            <div className="flex items-center space-x-4">
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                <Plus className="w-6 h-6 text-blue-600" />
+                )}
               </div>
-              <div>
-                <h3 className="font-semibold text-gray-900">Create a Workspace</h3>
-                <p className="text-gray-600">Set up a new workspace for your projects</p>
+            </div>
+
+            {/* Quick Actions */}
+            <div className="grid md:grid-cols-2 gap-6">
+              <div 
+                onClick={() => navigate('/workspace-details')}
+                className="bg-white rounded-lg p-6 shadow-sm border border-gray-200 cursor-pointer hover:border-blue-300 transition-colors"
+              >
+                <div className="flex items-center space-x-4">
+                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <Plus className="w-6 h-6 text-blue-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900">Create a Workspace</h3>
+                    <p className="text-gray-600">Set up a new workspace for your projects</p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-  {/* Signup Options Modal removed, navigation used instead */}
-        </div>
+        )}
       </main>
+    </div>
+  );
+}
+
+// Workspace Card Component
+interface WorkspaceCardProps {
+  workspace: any;
+  onClick: () => void;
+}
+
+function WorkspaceCard({ workspace, onClick }: WorkspaceCardProps) {
+  const getStatusBadge = (status: string) => {
+    const statusConfig = {
+      active: 'bg-green-100 text-green-800',
+      trialing: 'bg-blue-100 text-blue-800',
+      past_due: 'bg-yellow-100 text-yellow-800',
+      canceled: 'bg-red-100 text-red-800',
+      incomplete: 'bg-gray-100 text-gray-800'
+    };
+    return statusConfig[status as keyof typeof statusConfig] || statusConfig.incomplete;
+  };
+
+  const getPlanBadge = (plan: string) => {
+    const planConfig = {
+      basic: 'bg-gray-100 text-gray-800',
+      pro: 'bg-blue-100 text-blue-800',
+      enterprise: 'bg-purple-100 text-purple-800'
+    };
+    return planConfig[plan as keyof typeof planConfig] || planConfig.basic;
+  };
+
+  return (
+    <div 
+      onClick={onClick}
+      className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer"
+    >
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center space-x-3">
+          {workspace.white_label_configurations?.logo_path ? (
+            <img 
+              src={workspace.white_label_configurations.logo_path} 
+              alt={workspace.name}
+              className="w-8 h-8 rounded-lg object-cover"
+            />
+          ) : (
+            <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+              <Building2 className="w-4 h-4 text-blue-600" />
+            </div>
+          )}
+          <h3 className="font-medium text-gray-900 truncate">{workspace.name}</h3>
+        </div>
+        <span className={`px-2 py-1 text-xs rounded-full ${workspace.type === 'personal' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}`}>
+          {workspace.type}
+        </span>
+      </div>
+
+      <div className="space-y-2 mb-4">
+        {workspace.payment_account && (
+          <>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-gray-600">Plan</span>
+              <span className={`px-2 py-1 text-xs rounded-full ${getPlanBadge(workspace.payment_account.plan_type)}`}>
+                {workspace.payment_account.plan_type}
+              </span>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-gray-600">Status</span>
+              <span className={`px-2 py-1 text-xs rounded-full ${getStatusBadge(workspace.payment_account.subscription_status)}`}>
+                {workspace.payment_account.subscription_status}
+              </span>
+            </div>
+            {workspace.payment_account.current_period_end && (
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-600">Renewal</span>
+                <span className="font-medium text-gray-900">
+                  {new Date(workspace.payment_account.current_period_end).toLocaleDateString()}
+                </span>
+              </div>
+            )}
+          </>
+        )}
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-gray-600">Created</span>
+          <span className="font-medium text-gray-900">
+            {new Date(workspace.createdAt).toLocaleDateString()}
+          </span>
+        </div>
+      </div>
+
+      <div className="flex items-center space-x-2 text-xs text-gray-500">
+        <Calendar className="w-3 h-3" />
+        <span>Last updated {new Date(workspace.updatedAt).toLocaleDateString()}</span>
+      </div>
     </div>
   );
 }
