@@ -5,26 +5,27 @@ import {
   Route,
   Navigate,
 } from "react-router-dom";
-import { AppProvider } from "./context/AppContext";
+import { AppProvider } from "@/context/AppContext";
 import { Menu } from "lucide-react";
 
 //Client Portal Components
-import Layout from "./components/Layout";
-import ClientProperties from "./components/Properties";
-import Favorites from "./components/Favorites";
-import Chat from "./components/Chat";
-import ClientNotifications from "./components/Notifications";
-import Settings from "./components/Settings";
-import { mockProperties } from "./data/mockData";
+import Layout from "@/components/Layout";
+import ClientProperties from "@/components/Properties";
+import Favorites from "@/components/Favorites";
+import Chat from "@/components/Chat";
+import ClientNotifications from "@/components/Notifications";
+import Settings from "@/components/Settings";
+import { mockProperties } from "@/data/mockData";
 
 // Pages
-// Auth and Workspace Management Components
-import { LoginPage } from "./pages/LoginPage";
-import { SignupOptionsPage } from "./pages/SignupOptionsPage";
-import { TeamInvitePage } from "./pages/TeamInvitePage";
-import { PaymentPage } from "./pages/PaymentPage";
-import { VerificationPage } from "./pages/VerificationPage";
-import { CheckoutPage } from "./pages/CheckoutPage";
+// Pages - Auth pages
+import { LoginPage } from "@/pages/auth-pages/LoginPage";
+import { SignupOptionsPage } from "@/pages/auth-pages/SignupOptionsPage";
+import { AccountVerificationOptionsPage } from "@/pages/auth-pages/AccountVerificationOptionsPage";
+import { TeamInvitePage } from "@/pages/TeamInvitePage";
+import { PaymentPage } from "@/pages/PaymentPage";
+import { VerificationPage } from "@/pages/VerificationPage";
+import { CheckoutPage } from "@/pages/CheckoutPage";
 
 // Pages - Workspace pages
 import { WorkspaceDetailsPage } from "@/pages/workspace-pages/WorkspaceDetailsPage";
@@ -33,28 +34,30 @@ import { WorkspaceNameSetupPage } from "@/pages/workspace-pages/WorkspaceNameSet
 import { WorkspacePage } from "@/pages/workspace-pages/WorkspacePage";
 import { WorkspaceViewPage } from "@/pages/workspace-pages/WorkspaceViewPage";
 import { WorkspaceEditPage } from "@/pages/workspace-pages/WorkspaceEditPage";
-import { AccountVerificationOptionsPage } from "./pages/AccountVerificationOptionsPage";
 
 // Pages - Lead pages
 import Leads from "@/pages/lead-pages/Leads";
 import LeadForm from "@/pages/lead-pages/LeadForm";
 import LeadFormTemplating from "@/pages/lead-pages/LeadFormTemplating";
 
+// Pages - Client pages
+import ClientSignUp from "@/pages/client-pages/clientSignUp";
+
 // Realtor portal UI (pages)
-import Sidebar from "./pages/Sidebar";
-import Dashboard from "./pages/Dashboard";
-import Properties from "./pages/Properties";
-import Clients from "./pages/Clients";
-import Analytics from "./pages/Analytics";
-import Tasks from "./pages/Tasks";
-import Documents from "./pages/Documents";
-import Marketing from "./pages/Marketing";
-import Calendar from "./pages/Calendar";
-import FollowupTemplating from "./pages/FollowupTemplating";
-import Followup from "./pages/Followup";
-import RealtorNotifications from "./pages/Notifications";
-import Messaging from "./pages/Messaging";
-import Realtors from "./pages/Realtors";
+import Sidebar from "@/pages/Sidebar";
+import Dashboard from "@/pages/Dashboard";
+import Properties from "@/pages/Properties";
+import Clients from "@/pages/Clients";
+import Analytics from "@/pages/Analytics";
+import Tasks from "@/pages/Tasks";
+import Documents from "@/pages/Documents";
+import Marketing from "@/pages/Marketing";
+import Calendar from "@/pages/Calendar";
+import FollowupTemplating from "@/pages/FollowupTemplating";
+import Followup from "@/pages/Followup";
+import RealtorNotifications from "@/pages/Notifications";
+import Messaging from "@/pages/Messaging";
+import Realtors from "@/pages/Realtors";
 
 const WorkspaceListPage = () => <div>All Workspaces Page</div>;
 
@@ -397,6 +400,7 @@ function App() {
                 {/* Main domain routes */}
                 <Route path="/" element={<LoginPage />} />
                 <Route path="/signup-options" element={<SignupOptionsPage />} />
+                <Route path="/client-signup/:link" element={<ClientSignUp />} />
                 <Route
                   path="/account-verification-options"
                   element={<AccountVerificationOptionsPage />}

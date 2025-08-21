@@ -1,10 +1,10 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAppContext } from "../context/AppContext";
-import { BASE_URL } from "../config";
-import { PageLayout } from "../components/layout/PageLayout";
-import { Button } from "../components/ui/Button";
-import { Input } from "../components/ui/Input";
+import { useAppContext } from "@/context/AppContext";
+import { BASE_URL } from "@/config";
+import { PageLayout } from "@/components/layout/PageLayout";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 import { Mail, Lock, Sparkles, Zap } from "lucide-react";
 
 export function LoginPage() {
@@ -37,7 +37,7 @@ export function LoginPage() {
       localStorage.setItem("token", user.data?.token);
       dispatch({ type: "SET_USER", payload: user });
       setLoading(false);
-      
+
       // Route based on user_type
       if (user.data?.user_type === "Realtor") {
         navigate("/workspace");
