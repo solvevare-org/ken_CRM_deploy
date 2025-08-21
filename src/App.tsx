@@ -1,56 +1,64 @@
-import React, { useMemo, useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AppProvider } from './context/AppContext';
-import { Menu } from 'lucide-react';
-
-// Auth and Workspace Management Components
-import { LoginPage } from './pages/LoginPage';
-import { SignupOptionsPage } from './pages/SignupOptionsPage';
-import { TeamInvitePage } from './pages/TeamInvitePage';
-import { PaymentPage } from './pages/PaymentPage';
-import { VerificationPage } from './pages/VerificationPage';
-import { CheckoutPage } from './pages/CheckoutPage';
-import { WorkspaceDetailsPage } from './pages/WorkspaceDetailsPage';
-import { WorkspaceCreatedPage } from './pages/WorkspaceCreatedPage';
-import { WorkspaceNameSetupPage } from './pages/WorkspaceNameSetupPage';
-import { WorkspacePage } from './pages/WorkspacePage';
-import { WorkspaceViewPage } from './pages/WorkspaceViewPage';
-import { WorkspaceEditPage } from './pages/WorkspaceEditPage';
-import { AccountVerificationOptionsPage } from './pages/AccountVerificationOptionsPage';
+import React, { useMemo, useState } from "react";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
+import { AppProvider } from "./context/AppContext";
+import { Menu } from "lucide-react";
 
 //Client Portal Components
-import Layout from './components/Layout';
-import ClientProperties from './components/Properties';
-import Favorites from './components/Favorites';
-import Chat from './components/Chat';
-import ClientNotifications from './components/Notifications';
-import Settings from './components/Settings';
-import { mockProperties } from './data/mockData';
+import Layout from "./components/Layout";
+import ClientProperties from "./components/Properties";
+import Favorites from "./components/Favorites";
+import Chat from "./components/Chat";
+import ClientNotifications from "./components/Notifications";
+import Settings from "./components/Settings";
+import { mockProperties } from "./data/mockData";
 
+// Pages
+// Auth and Workspace Management Components
+import { LoginPage } from "./pages/LoginPage";
+import { SignupOptionsPage } from "./pages/SignupOptionsPage";
+import { TeamInvitePage } from "./pages/TeamInvitePage";
+import { PaymentPage } from "./pages/PaymentPage";
+import { VerificationPage } from "./pages/VerificationPage";
+import { CheckoutPage } from "./pages/CheckoutPage";
 
+// Pages - Workspace pages
+import { WorkspaceDetailsPage } from "./pages/workspace-pages/WorkspaceDetailsPage";
+import { WorkspaceCreatedPage } from "./pages/workspace-pages/WorkspaceCreatedPage";
+import { WorkspaceNameSetupPage } from "./pages/workspace-pages/WorkspaceNameSetupPage";
+import { WorkspacePage } from "./pages/workspace-pages/WorkspacePage";
+import { WorkspaceViewPage } from "./pages/workspace-pages/WorkspaceViewPage";
+import { WorkspaceEditPage } from "./pages/workspace-pages/WorkspaceEditPage";
+import { AccountVerificationOptionsPage } from "./pages/AccountVerificationOptionsPage";
 
 // Realtor portal UI (pages)
-import Sidebar from './pages/Sidebar';
-import Dashboard from './pages/Dashboard';
-import Properties from './pages/Properties';
-import Clients from './pages/Clients';
-import Analytics from './pages/Analytics';
-import Leads from './pages/Leads';
-import Tasks from './pages/Tasks';
-import Documents from './pages/Documents';
-import Marketing from './pages/Marketing';
-import Calendar from './pages/Calendar';
-import FollowupTemplating from './pages/FollowupTemplating';
-import Followup from './pages/Followup';
-import LeadForm from './pages/LeadForm';
-import LeadFormTemplating from './pages/LeadFormTemplating';
-import RealtorNotifications from './pages/Notifications';
-import Messaging from './pages/Messaging';
+import Sidebar from "./pages/Sidebar";
+import Dashboard from "./pages/Dashboard";
+import Properties from "./pages/Properties";
+import Clients from "./pages/Clients";
+import Analytics from "./pages/Analytics";
+import Leads from "./pages/lead-pages/Leads";
+import Tasks from "./pages/Tasks";
+import Documents from "./pages/Documents";
+import Marketing from "./pages/Marketing";
+import Calendar from "./pages/Calendar";
+import FollowupTemplating from "./pages/FollowupTemplating";
+import Followup from "./pages/Followup";
+import LeadForm from "./pages/lead-pages/LeadForm";
+import LeadFormTemplating from "./pages/lead-pages/LeadFormTemplating";
+import RealtorNotifications from "./pages/Notifications";
+import Messaging from "./pages/Messaging";
 import Realtors from './pages/Realtors';
 
 const WorkspaceListPage = () => <div>All Workspaces Page</div>;
 
-const ClientPortal: React.FC<{ initialPage?: string }> = ({ initialPage = 'properties' }) => {
+const ClientPortal: React.FC<{ initialPage?: string }> = ({
+  initialPage = "properties",
+}) => {
   const [currentPage, setCurrentPage] = useState(initialPage);
   const [properties, setProperties] = useState<any[]>(mockProperties as any[]);
 
@@ -71,20 +79,20 @@ const ClientPortal: React.FC<{ initialPage?: string }> = ({ initialPage = 'prope
 
   const renderCurrentPage = () => {
     switch (currentPage) {
-      case 'properties':
+      case "properties":
         return <ClientProperties onToggleFavorite={toggleFavorite} />;
-      case 'favorites':
+      case "favorites":
         return (
           <Favorites
             favoriteProperties={favoriteProperties}
             onToggleFavorite={toggleFavorite}
           />
         );
-      case 'chat':
+      case "chat":
         return <Chat />;
-      case 'notifications':
+      case "notifications":
         return <ClientNotifications />;
-      case 'settings':
+      case "settings":
         return <Settings />;
       default:
         return <ClientProperties onToggleFavorite={toggleFavorite} />;
@@ -99,43 +107,45 @@ const ClientPortal: React.FC<{ initialPage?: string }> = ({ initialPage = 'prope
 };
 
 // Realtor Portal (prefixed routes under /realtor)
-const RealtorPortal: React.FC<{ initialSection?: string }> = ({ initialSection = 'dashboard' }) => {
+const RealtorPortal: React.FC<{ initialSection?: string }> = ({
+  initialSection = "dashboard",
+}) => {
   const [activeSection, setActiveSection] = useState(initialSection);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const renderSection = () => {
     switch (activeSection) {
-      case 'dashboard':
+      case "dashboard":
         return <Dashboard />;
-      case 'properties':
+      case "properties":
         return <Properties />;
-      case 'clients':
+      case "clients":
         return <Clients />;
       case 'realtors':
         return <Realtors />;
       case 'analytics':
         return <Analytics />;
-      case 'leads':
+      case "leads":
         return <Leads />;
-      case 'tasks':
+      case "tasks":
         return <Tasks />;
-      case 'documents':
+      case "documents":
         return <Documents />;
-      case 'marketing':
+      case "marketing":
         return <Marketing />;
-      case 'calendar':
+      case "calendar":
         return <Calendar />;
-      case 'followup-templating':
+      case "followup-templating":
         return <FollowupTemplating />;
-      case 'followup':
+      case "followup":
         return <Followup />;
-      case 'leadform':
+      case "leadform":
         return <LeadForm />;
-      case 'leadform-templating':
+      case "leadform-templating":
         return <LeadFormTemplating />;
-      case 'notifications':
+      case "notifications":
         return <RealtorNotifications onNavigate={setActiveSection} />;
-      case 'messaging':
+      case "messaging":
         return <Messaging />;
       default:
         return <Dashboard />;
@@ -144,7 +154,7 @@ const RealtorPortal: React.FC<{ initialSection?: string }> = ({ initialSection =
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Sidebar 
+      <Sidebar
         activeSection={activeSection}
         setActiveSection={setActiveSection}
         isMobileMenuOpen={isMobileMenuOpen}
@@ -340,10 +350,22 @@ function App() {
 
                 {/* Client portal routes (prefixed) */}
                 <Route path="/client" element={<ClientPortal />} />
-                <Route path="/client/favorites" element={<ClientPortal initialPage="favorites" />} />
-                <Route path="/client/chat" element={<ClientPortal initialPage="chat" />} />
-                <Route path="/client/notifications" element={<ClientPortal initialPage="notifications" />} />
-                <Route path="/client/settings" element={<ClientPortal initialPage="settings" />} />
+                <Route
+              path="/client/favorites"
+              element={<ClientPortal initialPage="favorites" />}
+            />
+                <Route
+              path="/client/chat"
+              element={<ClientPortal initialPage="chat" />}
+            />
+                <Route
+              path="/client/notifications"
+              element={<ClientPortal initialPage="notifications" />}
+            />
+                <Route
+              path="/client/settings"
+              element={<ClientPortal initialPage="settings" />}
+            />
 
                 {/* Realtor portal routes (prefixed) */}
                 <Route path="/realtor" element={<RealtorPortal />} />

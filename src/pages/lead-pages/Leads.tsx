@@ -10,12 +10,17 @@ import {
   UserPlus,
   TrendingUp,
   Star,
+  Loader2,
 } from "lucide-react";
-import { useAppDispatch, useAppSelector } from "../store/hooks";
-import { GenerateFormLinkRequest } from "../types/leadFormLinkTypes";
-import { generateFormLink } from "../store/slices/leadFormLinkSlice";
-import { fetchRealtorLeads, selectLeads } from "../store/slices/realtorSlice";
-import { UrlModal } from "../components/UrlModel";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { GenerateFormLinkRequest } from "@/types/leadFormLinkTypes";
+import { generateFormLink } from "@/store/slices/leadFormLinkSlice";
+import {
+  fetchRealtorLeads,
+  selectLeads,
+  selectLeadsLoading,
+} from "@/store/slices/realtorSlice";
+import { UrlModal } from "@/components/UrlModel";
 // import { Lead } from "../types/leadTypes";
 
 const Leads: React.FC = () => {
@@ -31,6 +36,14 @@ const Leads: React.FC = () => {
 
   const dispatch = useAppDispatch();
   const leads = useAppSelector(selectLeads);
+  const leadsLoading = useAppSelector(selectLeadsLoading);
+  const loadCount = leads?.length;
+  const leadsNewThisWeek = leads?.filter((lead) => {
+    const submittedDate = new Date(lead.createdAt);
+    const now = new Date();
+    const oneWeekAgo = new Date(now.setDate(now.getDate() - 7));
+    return submittedDate >= oneWeekAgo;
+  }).length;
 
   useEffect(() => {
     if (!leads || leads.length === 0) {
@@ -85,7 +98,7 @@ const Leads: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Total Leads</p>
-              <p className="text-2xl font-bold text-gray-900">127</p>
+              <p className="text-2xl font-bold text-gray-900">{loadCount}</p>
             </div>
             <User className="w-8 h-8 text-blue-600" />
           </div>
@@ -94,7 +107,9 @@ const Leads: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">New This Week</p>
-              <p className="text-2xl font-bold text-gray-900">23</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {leadsNewThisWeek}
+              </p>
             </div>
             <Star className="w-8 h-8 text-emerald-600" />
           </div>
@@ -166,7 +181,11 @@ const Leads: React.FC = () => {
       </div>
 
       {/* Leads Table or Empty State */}
-      {leads.length === 0 ? (
+      {leadsLoading ? (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-10 flex flex-col items-center justify-center text-center space-y-4">
+          <Loader2 className="w-8 h-8 text-gray-600 animate-spin" />
+        </div>
+      ) : leads.length === 0 ? (
         <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-10 flex flex-col items-center justify-center text-center space-y-4">
           <div className="w-16 h-16 flex items-center justify-center rounded-full bg-blue-50">
             <UserPlus className="w-8 h-8 text-blue-600" />

@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAppContext } from '../context/AppContext';
-import { Button } from '../components/ui/Button';
-import { Input } from '../components/ui/Input';
+import { useAppContext } from '../../context/AppContext';
+import { Button } from '../../components/ui/Button';
+import { Input } from '../../components/ui/Input';
 import { Upload, Building2, Image as ImageIcon, Settings, FileText, AlertCircle, CheckCircle, X } from 'lucide-react';
-import { CRM_BASE_DOMAIN, BASE_URL } from '../config';
+import { CRM_BASE_DOMAIN, BASE_URL } from '../../config';
 
 export function WorkspaceDetailsPage() {
   const navigate = useNavigate();
@@ -167,7 +167,7 @@ export function WorkspaceDetailsPage() {
     }
     
     setLoading(true);
-    
+
     setTimeout(() => {
       const newWorkspace = {
         id: Date.now().toString(),
@@ -186,8 +186,8 @@ export function WorkspaceDetailsPage() {
         disabledFeatures,
         isWhitelabel: true
       };
-      
-      dispatch({ type: 'ADD_WORKSPACE', payload: newWorkspace });
+
+      dispatch({ type: "ADD_WORKSPACE", payload: newWorkspace });
       setLoading(false);
       
       // Redirect to tenant subdomain in dev to simulate wildcard DNS
@@ -203,7 +203,7 @@ export function WorkspaceDetailsPage() {
       if (window.location.hostname !== `${slug}.${CRM_BASE_DOMAIN}`) {
         window.location.assign(targetUrl);
       } else {
-        navigate('/workspace-created');
+        navigate("/workspace-created");
       }
     }, 1500);
   };
@@ -299,7 +299,11 @@ export function WorkspaceDetailsPage() {
               <div className="flex items-center space-x-6">
                 <div className="w-20 h-20 bg-gray-100 rounded-xl flex items-center justify-center border-2 border-dashed border-gray-300">
                   {workspaceImage ? (
-                    <img src={workspaceImage} alt="Workspace" className="w-full h-full object-cover rounded-xl" />
+                    <img
+                      src={workspaceImage}
+                      alt="Workspace"
+                      className="w-full h-full object-cover rounded-xl"
+                    />
                   ) : (
                     <ImageIcon className="w-8 h-8 text-gray-400" />
                   )}
@@ -317,7 +321,9 @@ export function WorkspaceDetailsPage() {
                       <span className="text-sm text-gray-700">Upload Logo</span>
                     </div>
                   </label>
-                  <p className="text-xs text-gray-500 mt-1">PNG, JPG up to 2MB</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    PNG, JPG up to 2MB
+                  </p>
                 </div>
               </div>
             </div>
@@ -434,7 +440,7 @@ export function WorkspaceDetailsPage() {
           {/* Back Button */}
           <div className="text-center mt-6">
             <button
-              onClick={() => navigate('/checkout')}
+              onClick={() => navigate("/checkout")}
               className="text-gray-500 hover:text-gray-700 font-medium transition-colors"
             >
               ← Back

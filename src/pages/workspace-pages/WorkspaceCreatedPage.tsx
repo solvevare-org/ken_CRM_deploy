@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAppContext } from '../context/AppContext';
-import { Button } from '../components/ui/Button';
+import { useAppContext } from '../../context/AppContext';
+import { Button } from '../../components/ui/Button';
 import { CheckCircle, Rocket, Users, Settings, Plus, Building2 } from 'lucide-react';
 
 export function WorkspaceCreatedPage() {

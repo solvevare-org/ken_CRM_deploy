@@ -1,8 +1,8 @@
 // ...existing code...
 import { useParams } from 'react-router-dom';
-import { useAppContext } from '../context/AppContext';
+import { useAppContext } from '@/context/AppContext';
 import { Users, Building2 } from 'lucide-react';
-import { Button } from '../components/ui/Button';
+import { Button } from '@/components/ui/Button';
 
 export function WorkspaceViewPage() {
   const { id } = useParams();
