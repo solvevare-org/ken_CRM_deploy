@@ -23,7 +23,7 @@ export function WorkspacePage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [personalWorkspaces, setPersonalWorkspaces] = useState<any[]>([]);
   const [organizationWorkspaces, setOrganizationWorkspaces] = useState<any[]>([]);
-  const [pendingInvites] = useState<any[]>([]); // Mock data for now
+  const [pendingInvites, setPendingInvites] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const { state, dispatch } = useAppContext();
@@ -50,12 +50,14 @@ export function WorkspacePage() {
           const result = await response.json();
           const workspaces = result.data || [];
           
-          // Separate workspaces by type
-          const personal = workspaces.filter((ws: any) => ws.type === 'personal');
-          const organization = workspaces.filter((ws: any) => ws.type === 'organization');
+          // Separate workspaces by type and invitation status
+          const personal = workspaces.filter((ws: any) => ws.type === 'personal' && !ws.invitedPending);
+          const organization = workspaces.filter((ws: any) => ws.type === 'organization' && !ws.invitedPending);
+          const pending = workspaces.filter((ws: any) => ws.invitedPending);
           
           setPersonalWorkspaces(personal);
           setOrganizationWorkspaces(organization);
+          setPendingInvites(pending);
         }
       } catch (error) {
         console.error('Error fetching workspaces:', error);
@@ -208,7 +210,7 @@ export function WorkspacePage() {
                   <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {personalWorkspaces.map((ws) => (
                       <WorkspaceCard
-                        key={ws._id}
+                        key={ws.id}
                         workspace={ws}
                         onClick={() => handleWorkspaceClick(ws)}
                       />
@@ -220,24 +222,31 @@ export function WorkspacePage() {
 
             {/* Organization Workspaces Section */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-              <div className="p-6 border-b border-gray-200">
-                <h2 className="text-xl font-semibold text-gray-900">Organization Workspaces</h2>
-                <p className="text-sm text-gray-600 mt-1">Shared workspaces for team collaboration</p>
+              <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-semibold text-gray-900">Organization Workspaces</h2>
+                  <p className="text-sm text-gray-600 mt-1">Shared workspaces for team collaboration</p>
+                </div>
+                <Button 
+                  onClick={() => navigate('/workspace-details')}
+                  className="flex items-center space-x-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Add Workspace</span>
+                </Button>
               </div>
               <div className="p-6">
                 {organizationWorkspaces.length === 0 ? (
                   <div className="text-center py-8">
                     <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                     <p className="text-gray-500 mb-4">No organization workspaces found</p>
-                    <Button onClick={() => navigate('/workspace-details')}>
-                      Create Organization Workspace
-                    </Button>
+                    <p className="text-sm text-gray-400">Click "Add Workspace" above to create your first organization workspace</p>
                   </div>
                 ) : (
                   <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {organizationWorkspaces.map((ws) => (
                       <WorkspaceCard
-                        key={ws._id}
+                        key={ws.id}
                         workspace={ws}
                         onClick={() => handleWorkspaceClick(ws)}
                       />
@@ -265,12 +274,24 @@ export function WorkspacePage() {
                       <div key={invite.id} className="border border-gray-200 rounded-lg p-4 flex items-center justify-between">
                         <div className="flex items-center space-x-4">
                           <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                            <Building2 className="w-5 h-5 text-blue-600" />
+                            {invite.white_label_configurations?.logo_path ? (
+                              <img 
+                                src={invite.white_label_configurations.logo_path} 
+                                alt={invite.name}
+                                className="w-10 h-10 rounded-lg object-cover"
+                              />
+                            ) : (
+                              <Building2 className="w-5 h-5 text-blue-600" />
+                            )}
                           </div>
                           <div>
-                            <h3 className="font-medium text-gray-900">{invite.workspaceName}</h3>
-                            <p className="text-sm text-gray-600">Invited by {invite.inviterName}</p>
-                            <p className="text-xs text-gray-500">Role: {invite.role}</p>
+                            <h3 className="font-medium text-gray-900">{invite.name}</h3>
+                            <p className="text-sm text-gray-600">
+                              <span className={`px-2 py-1 text-xs rounded-full ${invite.type === 'personal' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}`}>
+                                {invite.type}
+                              </span>
+                            </p>
+                            <p className="text-xs text-gray-500">Role: {invite.role || 'Member'}</p>
                           </div>
                         </div>
                         <div className="flex items-center space-x-2">
@@ -300,23 +321,7 @@ export function WorkspacePage() {
               </div>
             </div>
 
-            {/* Quick Actions */}
-            <div className="grid md:grid-cols-2 gap-6">
-              <div 
-                onClick={() => navigate('/workspace-details')}
-                className="bg-white rounded-lg p-6 shadow-sm border border-gray-200 cursor-pointer hover:border-blue-300 transition-colors"
-              >
-                <div className="flex items-center space-x-4">
-                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <Plus className="w-6 h-6 text-blue-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900">Create a Workspace</h3>
-                    <p className="text-gray-600">Set up a new workspace for your projects</p>
-                  </div>
-                </div>
-              </div>
-            </div>
+
           </div>
         )}
       </main>
@@ -369,11 +374,23 @@ function WorkspaceCard({ workspace, onClick }: WorkspaceCardProps) {
               <Building2 className="w-4 h-4 text-blue-600" />
             </div>
           )}
-          <h3 className="font-medium text-gray-900 truncate">{workspace.name}</h3>
+          <div>
+            <h3 className="font-medium text-gray-900 truncate">{workspace.name}</h3>
+            <p className="text-xs text-gray-500">
+              {workspace.isAdmin ? 'Administrator' : workspace.role || 'Member'}
+            </p>
+          </div>
         </div>
-        <span className={`px-2 py-1 text-xs rounded-full ${workspace.type === 'personal' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}`}>
-          {workspace.type}
-        </span>
+        <div className="flex flex-col items-end space-y-1">
+          <span className={`px-2 py-1 text-xs rounded-full ${workspace.type === 'personal' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}`}>
+            {workspace.type}
+          </span>
+          {workspace.invitedPending && (
+            <span className="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">
+              Pending
+            </span>
+          )}
+        </div>
       </div>
 
       <div className="space-y-2 mb-4">
@@ -401,18 +418,45 @@ function WorkspaceCard({ workspace, onClick }: WorkspaceCardProps) {
             )}
           </>
         )}
+        
+        {/* Role Information */}
         <div className="flex items-center justify-between text-sm">
-          <span className="text-gray-600">Created</span>
-          <span className="font-medium text-gray-900">
-            {new Date(workspace.createdAt).toLocaleDateString()}
+          <span className="text-gray-600">Your Role</span>
+          <span className={`px-2 py-1 text-xs rounded-full font-medium ${
+            workspace.isAdmin 
+              ? 'bg-purple-100 text-purple-800' 
+              : 'bg-gray-100 text-gray-800'
+          }`}>
+            {workspace.isAdmin ? 'Admin' : workspace.role || 'Member'}
           </span>
         </div>
+
+        {/* Features Status */}
+        {workspace.white_label_configurations?.features_disabled && workspace.white_label_configurations.features_disabled.length > 0 && (
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-gray-600">Disabled Features</span>
+            <span className="text-xs text-orange-600">
+              {workspace.white_label_configurations.features_disabled.length} disabled
+            </span>
+          </div>
+        )}
+
+        {workspace.createdAt && (
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-gray-600">Created</span>
+            <span className="font-medium text-gray-900">
+              {new Date(workspace.createdAt).toLocaleDateString()}
+            </span>
+          </div>
+        )}
       </div>
 
-      <div className="flex items-center space-x-2 text-xs text-gray-500">
-        <Calendar className="w-3 h-3" />
-        <span>Last updated {new Date(workspace.updatedAt).toLocaleDateString()}</span>
-      </div>
+      {workspace.updatedAt && (
+        <div className="flex items-center space-x-2 text-xs text-gray-500">
+          <Calendar className="w-3 h-3" />
+          <span>Last updated {new Date(workspace.updatedAt).toLocaleDateString()}</span>
+        </div>
+      )}
     </div>
   );
 }

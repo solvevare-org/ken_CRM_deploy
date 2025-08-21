@@ -46,6 +46,7 @@ import LeadForm from './pages/LeadForm';
 import LeadFormTemplating from './pages/LeadFormTemplating';
 import RealtorNotifications from './pages/Notifications';
 import Messaging from './pages/Messaging';
+import Realtors from './pages/Realtors';
 
 const WorkspaceListPage = () => <div>All Workspaces Page</div>;
 
@@ -110,6 +111,8 @@ const RealtorPortal: React.FC<{ initialSection?: string }> = ({ initialSection =
         return <Properties />;
       case 'clients':
         return <Clients />;
+      case 'realtors':
+        return <Realtors />;
       case 'analytics':
         return <Analytics />;
       case 'leads':
@@ -176,10 +179,16 @@ function App() {
     const hostname = window.location.hostname;
     const parts = hostname.split('.');
     
+    console.log('Hostname:', hostname);
+    console.log('Parts:', parts);
+    
     // Check if it's a workspace subdomain (e.g., tenant-1.crm.localhost)
     if (parts.length >= 3) {
       const baseDomain = parts.slice(-2).join('.');
-      return baseDomain === 'crm.localhost' && parts[0] !== 'crm';
+      console.log('Base domain:', baseDomain);
+      const isWorkspace = baseDomain === 'crm.localhost' && parts[0] !== 'crm';
+      console.log('Is workspace subdomain:', isWorkspace);
+      return isWorkspace;
     }
     return false;
   };
@@ -195,13 +204,25 @@ function App() {
   // Protected route wrapper for workspace subdomains
   const WorkspaceProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     const token = localStorage.getItem('token');
+    console.log('Token in WorkspaceProtectedRoute:', token ? 'exists' : 'missing');
     
-    if (!token) {
+    // For development: allow access without token if on localhost
+    const isDevelopment = window.location.hostname.includes('localhost');
+    
+    if (!token && !isDevelopment) {
       return <LoginPage />;
+    }
+    
+    // If no token but in development, show a warning but allow access
+    if (!token && isDevelopment) {
+      console.warn('Development mode: Accessing workspace without authentication token');
     }
     
     return <>{children}</>;
   };
+
+  const isWorkspace = isWorkspaceSubdomain();
+  console.log('App routing - Is workspace subdomain:', isWorkspace);
 
   return (
     <AppProvider>
@@ -209,7 +230,7 @@ function App() {
         <div className="min-h-screen bg-gray-50">
           <Routes>
             {/* Workspace subdomain routes */}
-            {isWorkspaceSubdomain() ? (
+            {isWorkspace ? (
               <>
                 <Route path="/" element={
                   <WorkspaceProtectedRoute>
@@ -229,6 +250,11 @@ function App() {
                 <Route path="/realtor/clients" element={
                   <WorkspaceProtectedRoute>
                     <RealtorPortal initialSection="clients" />
+                  </WorkspaceProtectedRoute>
+                } />
+                <Route path="/realtor/realtors" element={
+                  <WorkspaceProtectedRoute>
+                    <RealtorPortal initialSection="realtors" />
                   </WorkspaceProtectedRoute>
                 } />
                 <Route path="/realtor/analytics" element={
@@ -323,6 +349,7 @@ function App() {
                 <Route path="/realtor" element={<RealtorPortal />} />
                 <Route path="/realtor/properties" element={<RealtorPortal initialSection="properties" />} />
                 <Route path="/realtor/clients" element={<RealtorPortal initialSection="clients" />} />
+                <Route path="/realtor/realtors" element={<RealtorPortal initialSection="realtors" />} />
                 <Route path="/realtor/analytics" element={<RealtorPortal initialSection="analytics" />} />
                 <Route path="/realtor/leads" element={<RealtorPortal initialSection="leads" />} />
                 <Route path="/realtor/tasks" element={<RealtorPortal initialSection="tasks" />} />
