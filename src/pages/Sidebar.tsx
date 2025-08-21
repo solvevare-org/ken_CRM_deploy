@@ -1,6 +1,7 @@
 
 import React from 'react';
-import { Home, Building2, Users, BarChart3, Calendar, FileText, Target, CheckSquare, UserPlus, User, X, Settings, MessageSquare, Send, Bell, MessageCircle } from 'lucide-react';
+import { Home, Building2, Users, BarChart3, Calendar, FileText, Target, CheckSquare, UserPlus, User, X, Settings, MessageSquare, Send, Bell, MessageCircle, UserCheck } from 'lucide-react';
+import { useAppContext } from '../context/AppContext';
 
 interface SidebarProps {
 	activeSection: string;
@@ -42,9 +43,25 @@ const menuItems = [
 ];
 
 const Sidebar: React.FC<SidebarProps> = ({ activeSection, setActiveSection, isMobileMenuOpen, setIsMobileMenuOpen }) => {
+	const { state } = useAppContext();
+	const isAdmin = state.user?.role === 'admin';
+
 	const handleMenuItemClick = (sectionId: string) => {
 		setActiveSection(sectionId);
 		setIsMobileMenuOpen(false);
+	};
+
+	// Filter menu items based on admin status
+	const getFilteredMenuItems = () => {
+		const items = [...menuItems];
+		
+		// Add Realtors tab only for admin users
+		if (isAdmin) {
+			// Insert after 'clients' (index 2)
+			items.splice(3, 0, { id: 'realtors', label: 'Realtors', icon: UserCheck });
+		}
+		
+		return items;
 	};
 
 	return (
@@ -76,7 +93,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, setActiveSection, isMo
 				</div>
 				{/* Navigation (scrollable) */}
 				<nav className="mt-8 px-4 space-y-2 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 180px)' }}>
-					{menuItems.map((item) => {
+					{getFilteredMenuItems().map((item) => {
 						if (item.children) {
 							const ParentIcon = item.icon;
 							return (

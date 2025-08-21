@@ -37,7 +37,16 @@ export function LoginPage() {
       localStorage.setItem("token", user.data?.token);
       dispatch({ type: "SET_USER", payload: user });
       setLoading(false);
-      navigate("/workspace");
+      
+      // Route based on user_type
+      if (user.data?.user_type === "Realtor") {
+        navigate("/workspace");
+      } else if (user.data?.user_type === "Client") {
+        navigate("/client");
+      } else {
+        // Default fallback
+        navigate("/workspace");
+      }
     } catch (err) {
       setError("An error occurred. Please try again.");
       setLoading(false);

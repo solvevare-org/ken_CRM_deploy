@@ -1,19 +1,19 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAppContext } from "@/context/AppContext";
-import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
+import { useAppContext } from "../context/AppContext";
+import { Button } from "../components/ui/Button";
+import { Input } from "../components/ui/Input";
 import {
   Upload,
   Building2,
   Image as ImageIcon,
   Settings,
-  Users,
-  Tag,
-  Plus,
+  FileText,
+  AlertCircle,
+  CheckCircle,
   X,
 } from "lucide-react";
-import { CRM_BASE_DOMAIN } from "@/config";
+import { CRM_BASE_DOMAIN, BASE_URL } from "../config";
 
 export function WorkspaceDetailsPage() {
   const navigate = useNavigate();
@@ -23,15 +23,34 @@ export function WorkspaceDetailsPage() {
   const [workspaceName, setWorkspaceName] = useState("");
   const [primaryColor] = useState("#3B82F6");
   const [secondaryColor] = useState("#10B981");
-  const [memberCount, setMemberCount] = useState(1);
-  const [roleTags, setRoleTags] = useState<string[]>([
-    "Admin",
-    "Manager",
-    "Agent",
-    "Trainee",
-  ]);
-  const [newRoleTag, setNewRoleTag] = useState("");
+  const [signatureFiles, setSignatureFiles] = useState<File[]>([]);
+  const [disabledFeatures, setDisabledFeatures] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  const [nameValidation, setNameValidation] = useState<{
+    isValid: boolean;
+    isChecking: boolean;
+    message: string;
+  }>({ isValid: true, isChecking: false, message: "" });
+
+  // Available features that can be disabled
+  const availableFeatures = [
+    { id: "dashboard", label: "Dashboard" },
+    { id: "properties", label: "Properties" },
+    { id: "clients", label: "Clients" },
+    { id: "realtors", label: "Realtors" },
+    { id: "analytics", label: "Analytics" },
+    { id: "leads", label: "Leads" },
+    { id: "tasks", label: "Tasks" },
+    { id: "documents", label: "Documents" },
+    { id: "marketing", label: "Campaigns" },
+    { id: "calendar", label: "Calendar" },
+    { id: "followup", label: "Follow-up" },
+    { id: "followup-templating", label: "Follow-up Templating" },
+    { id: "leadform", label: "Lead Form" },
+    { id: "leadform-templating", label: "Lead Form Templating" },
+    { id: "notifications", label: "Notifications" },
+    { id: "messaging", label: "Messages" },
+  ];
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -44,19 +63,140 @@ export function WorkspaceDetailsPage() {
     }
   };
 
-  const addRoleTag = () => {
-    if (newRoleTag.trim() && !roleTags.includes(newRoleTag.trim())) {
-      setRoleTags([...roleTags, newRoleTag.trim()]);
-      setNewRoleTag("");
+  // Validate workspace name
+  const validateWorkspaceName = (name: string) => {
+    // Check for invalid characters
+    const invalidChars = /[*+=\$%\^&()!@]/;
+    if (invalidChars.test(name)) {
+      return {
+        isValid: false,
+        message:
+          "Workspace name cannot contain special characters like *, +, =, $, %, ^, &, (, ), !, @",
+      };
+    }
+
+    // Check length
+    if (name.length < 3 || name.length > 50) {
+      return {
+        isValid: false,
+        message: "Workspace name must be between 3 and 50 characters",
+      };
+    }
+
+    return { isValid: true, message: "" };
+  };
+
+  // Check workspace name availability
+  const checkWorkspaceAvailability = async (name: string) => {
+    if (!name.trim()) return;
+
+    const validation = validateWorkspaceName(name);
+    if (!validation.isValid) {
+      setNameValidation({
+        isValid: false,
+        isChecking: false,
+        message: validation.message,
+      });
+      return;
+    }
+
+    setNameValidation({
+      isValid: true,
+      isChecking: true,
+      message: "Checking availability...",
+    });
+
+    try {
+      // Convert name to slug format
+      const slug = name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)/g, "");
+
+      const response = await fetch(
+        `${BASE_URL}/api/workspaces/check-exist?name=${slug}`,
+        {
+          method: "GET",
+          credentials: "include",
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.data?.available) {
+          setNameValidation({
+            isValid: true,
+            isChecking: false,
+            message: result.data.message || "This workspace name is available",
+          });
+        } else {
+          setNameValidation({
+            isValid: false,
+            isChecking: false,
+            message:
+              "This workspace name is already taken. Please choose a different name.",
+          });
+        }
+      } else {
+        setNameValidation({
+          isValid: false,
+          isChecking: false,
+          message: "Unable to check name availability. Please try again.",
+        });
+      }
+    } catch (error) {
+      console.error("Error checking workspace availability:", error);
+      setNameValidation({
+        isValid: false,
+        isChecking: false,
+        message: "Network error. Please check your connection and try again.",
+      });
     }
   };
 
-  const removeRoleTag = (tagToRemove: string) => {
-    setRoleTags(roleTags.filter((tag) => tag !== tagToRemove));
+  // Debounced name validation
+  useEffect(() => {
+    if (workspaceName.trim()) {
+      const timer = setTimeout(() => {
+        checkWorkspaceAvailability(workspaceName);
+      }, 500);
+      return () => clearTimeout(timer);
+    } else {
+      setNameValidation({ isValid: true, isChecking: false, message: "" });
+    }
+  }, [workspaceName]);
+
+  // Handle signature file uploads
+  const handleSignatureUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    setSignatureFiles((prev) => [...prev, ...files]);
+  };
+
+  const removeSignatureFile = (index: number) => {
+    setSignatureFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  // Handle feature selection
+  const toggleFeature = (featureId: string) => {
+    setDisabledFeatures((prev) =>
+      prev.includes(featureId)
+        ? prev.filter((id) => id !== featureId)
+        : [...prev, featureId]
+    );
   };
 
   const handleContinue = (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate form before submission
+    if (!nameValidation.isValid || nameValidation.isChecking) {
+      return;
+    }
+
     setLoading(true);
 
     setTimeout(() => {
@@ -66,22 +206,24 @@ export function WorkspaceDetailsPage() {
         description: "",
         type: "main" as const,
         createdAt: new Date().toISOString(),
-        memberCount: memberCount,
+        memberCount: 1, // Default to 1 member (the creator)
         activeListings: 0,
         totalDeals: 0,
         monthlyRevenue: 0,
         image: workspaceImage || undefined,
         primaryColor,
         secondaryColor,
-        roleTags,
+        signatureFiles: signatureFiles.map((file) => file.name),
+        disabledFeatures,
         isWhitelabel: true,
       };
 
       dispatch({ type: "ADD_WORKSPACE", payload: newWorkspace });
       setLoading(false);
+
       // Redirect to tenant subdomain in dev to simulate wildcard DNS
       const slug =
-        (workspaceName || "my-workspace")
+        workspaceName
           .trim()
           .toLowerCase()
           .replace(/[^a-z0-9]+/g, "-")
@@ -89,6 +231,7 @@ export function WorkspaceDetailsPage() {
       const protocol = window.location.protocol || "http:";
       const port = window.location.port ? `:${window.location.port}` : "";
       const targetUrl = `${protocol}//${slug}.${CRM_BASE_DOMAIN}${port}/`;
+
       if (window.location.hostname !== `${slug}.${CRM_BASE_DOMAIN}`) {
         window.location.assign(targetUrl);
       } else {
@@ -107,12 +250,11 @@ export function WorkspaceDetailsPage() {
               <Building2 className="w-8 h-8 text-blue-600" />
             </div>
             <h1 className="text-2xl font-bold text-gray-900 mb-2">
-              Customize Your Workspace
+              Create Organization Workspace
             </h1>
             <p className="text-gray-600">
-              {/* Removed isFirstTime conditional rendering */}? "Set up your
-              workspace with standard organization template" : "Configure your
-              workspace with whitelabel options"
+              Set up a new organization workspace with custom branding and
+              features
             </p>
           </div>
 
@@ -127,20 +269,20 @@ export function WorkspaceDetailsPage() {
                 <div className="bg-white p-3 rounded-lg">
                   <div className="text-gray-600 mb-1">Name</div>
                   <div className="font-medium text-gray-900">
-                    {workspaceName || "My Workspace"}
+                    {workspaceName || "Organization Workspace"}
                   </div>
                 </div>
                 <div className="bg-white p-3 rounded-lg">
-                  <div className="text-gray-600 mb-1">Members</div>
+                  <div className="text-gray-600 mb-1">Signatures</div>
                   <div className="font-medium text-gray-900 flex items-center">
-                    <Users className="w-4 h-4 mr-1" />
-                    {memberCount} members
+                    <FileText className="w-4 h-4 mr-1" />
+                    {signatureFiles.length} files
                   </div>
                 </div>
                 <div className="bg-white p-3 rounded-lg">
-                  <div className="text-gray-600 mb-1">Role Tags</div>
+                  <div className="text-gray-600 mb-1">Disabled Features</div>
                   <div className="font-medium text-gray-900">
-                    {roleTags.length} roles defined
+                    {disabledFeatures.length} features disabled
                   </div>
                 </div>
               </div>
@@ -148,14 +290,44 @@ export function WorkspaceDetailsPage() {
 
             {/* Workspace Name */}
             <div>
-              <Input
-                label="Workspace Name"
-                type="text"
-                value={workspaceName}
-                onChange={(e) => setWorkspaceName(e.target.value)}
-                placeholder="Enter workspace name..."
-                required
-              />
+              <div className="mb-2">
+                <Input
+                  label="Workspace Name"
+                  type="text"
+                  value={workspaceName}
+                  onChange={(e) => setWorkspaceName(e.target.value)}
+                  placeholder="Enter workspace name..."
+                  required
+                />
+              </div>
+
+              {/* Name Validation Feedback */}
+              {workspaceName.trim() && (
+                <div className="mt-2 flex items-center space-x-2">
+                  {nameValidation.isChecking ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                      <span className="text-sm text-blue-600">
+                        {nameValidation.message}
+                      </span>
+                    </>
+                  ) : nameValidation.isValid ? (
+                    <>
+                      <CheckCircle className="w-4 h-4 text-green-600" />
+                      <span className="text-sm text-green-600">
+                        {nameValidation.message}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <AlertCircle className="w-4 h-4 text-red-600" />
+                      <span className="text-sm text-red-600">
+                        {nameValidation.message}
+                      </span>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Workspace Image */}
@@ -195,90 +367,121 @@ export function WorkspaceDetailsPage() {
               </div>
             </div>
 
-            {/* Member Count */}
+            {/* Signature Files Upload */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                <Users className="w-4 h-4 inline mr-2" />
-                Initial Member Count
+              <label className="block text-sm font-medium text-gray-700 mb-4">
+                <FileText className="w-4 h-4 inline mr-2" />
+                Signature Files
               </label>
-              <div className="flex items-center space-x-4">
-                <button
-                  type="button"
-                  onClick={() => setMemberCount(Math.max(1, memberCount - 1))}
-                  className="w-10 h-10 flex items-center justify-center border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  -
-                </button>
-                <span className="text-lg font-semibold text-gray-900 min-w-[2rem] text-center">
-                  {memberCount}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setMemberCount(memberCount + 1)}
-                  className="w-10 h-10 flex items-center justify-center border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  +
-                </button>
-                <span className="text-sm text-gray-500">members</span>
+              <div className="space-y-4">
+                <div>
+                  <label className="cursor-pointer">
+                    <input
+                      type="file"
+                      accept="image/*,.pdf"
+                      multiple
+                      onChange={handleSignatureUpload}
+                      className="hidden"
+                    />
+                    <div className="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                      <Upload className="w-4 h-4 text-gray-500" />
+                      <span className="text-sm text-gray-700">
+                        Upload Signature Files
+                      </span>
+                    </div>
+                  </label>
+                  <p className="text-xs text-gray-500 mt-1">
+                    PNG, JPG, PDF files up to 5MB each
+                  </p>
+                </div>
+
+                {/* Display uploaded signature files */}
+                {signatureFiles.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-gray-700">
+                      Uploaded Files:
+                    </p>
+                    <div className="space-y-2">
+                      {signatureFiles.map((file, index) => (
+                        <div
+                          key={index}
+                          className="flex items-center justify-between bg-gray-50 p-2 rounded-lg"
+                        >
+                          <div className="flex items-center space-x-2">
+                            <FileText className="w-4 h-4 text-gray-500" />
+                            <span className="text-sm text-gray-700 truncate">
+                              {file.name}
+                            </span>
+                            <span className="text-xs text-gray-500">
+                              ({Math.round(file.size / 1024)}KB)
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removeSignatureFile(index)}
+                            className="text-red-500 hover:text-red-700 p-1"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
-            {/* Role Tags */}
+            {/* Feature Selection */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-4">
-                <Tag className="w-4 h-4 inline mr-2" />
-                Role Tags
+                <Settings className="w-4 h-4 inline mr-2" />
+                Disable Features
               </label>
+              <p className="text-sm text-gray-600 mb-4">
+                Select features you want to disable in this workspace. Disabled
+                features will not be accessible to workspace members.
+              </p>
 
-              {/* Add new role tag */}
-              <div className="flex items-center space-x-2 mb-4">
-                <Input
-                  type="text"
-                  value={newRoleTag}
-                  onChange={(e) => setNewRoleTag(e.target.value)}
-                  placeholder="Add new role..."
-                  className="flex-1"
-                  onKeyPress={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      addRoleTag();
-                    }
-                  }}
-                />
-                <Button
-                  type="button"
-                  onClick={addRoleTag}
-                  size="sm"
-                  className="px-3"
-                  disabled={!newRoleTag.trim()}
-                >
-                  <Plus className="w-4 h-4" />
-                </Button>
-              </div>
-
-              {/* Display role tags */}
-              <div className="flex flex-wrap gap-2">
-                {roleTags.map((tag, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center space-x-2 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm"
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                {availableFeatures.map((feature) => (
+                  <label
+                    key={feature.id}
+                    className="flex items-center space-x-2 cursor-pointer"
                   >
-                    <span>{tag}</span>
-                    <button
-                      type="button"
-                      onClick={() => removeRoleTag(tag)}
-                      className="hover:bg-blue-200 rounded-full p-0.5 transition-colors"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </div>
+                    <input
+                      type="checkbox"
+                      checked={disabledFeatures.includes(feature.id)}
+                      onChange={() => toggleFeature(feature.id)}
+                      className="rounded border-gray-300 text-red-600 focus:ring-red-500"
+                    />
+                    <span className="text-sm text-gray-700">
+                      {feature.label}
+                    </span>
+                  </label>
                 ))}
               </div>
 
-              {roleTags.length === 0 && (
-                <p className="text-sm text-gray-500 italic">
-                  No role tags added yet
-                </p>
+              {disabledFeatures.length > 0 && (
+                <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-sm text-red-800 font-medium">
+                    {disabledFeatures.length} feature(s) will be disabled:
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {disabledFeatures.map((featureId) => {
+                      const feature = availableFeatures.find(
+                        (f) => f.id === featureId
+                      );
+                      return (
+                        <span
+                          key={featureId}
+                          className="px-2 py-1 text-xs bg-red-100 text-red-800 rounded-full"
+                        >
+                          {feature?.label}
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
               )}
             </div>
 
@@ -287,8 +490,17 @@ export function WorkspaceDetailsPage() {
             {/* Template Notice */}
             {/* Template Notice removed (was conditional on isFirstTime) */}
 
-            <Button type="submit" className="w-full" loading={loading}>
-              Create Workspace
+            <Button
+              type="submit"
+              className="w-full"
+              loading={loading}
+              disabled={
+                !nameValidation.isValid ||
+                nameValidation.isChecking ||
+                !workspaceName.trim()
+              }
+            >
+              Create Organization Workspace
             </Button>
           </form>
 
