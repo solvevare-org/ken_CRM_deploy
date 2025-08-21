@@ -35,21 +35,23 @@ import { WorkspaceViewPage } from "@/pages/workspace-pages/WorkspaceViewPage";
 import { WorkspaceEditPage } from "@/pages/workspace-pages/WorkspaceEditPage";
 import { AccountVerificationOptionsPage } from "./pages/AccountVerificationOptionsPage";
 
+// Pages - Lead pages
+import Leads from "@/pages/lead-pages/Leads";
+import LeadForm from "@/pages/lead-pages/LeadForm";
+import LeadFormTemplating from "@/pages/lead-pages/LeadFormTemplating";
+
 // Realtor portal UI (pages)
 import Sidebar from "./pages/Sidebar";
 import Dashboard from "./pages/Dashboard";
 import Properties from "./pages/Properties";
 import Clients from "./pages/Clients";
 import Analytics from "./pages/Analytics";
-import Leads from "./pages/Leads";
 import Tasks from "./pages/Tasks";
 import Documents from "./pages/Documents";
 import Marketing from "./pages/Marketing";
 import Calendar from "./pages/Calendar";
 import FollowupTemplating from "./pages/FollowupTemplating";
 import Followup from "./pages/Followup";
-import LeadForm from "./pages/LeadForm";
-import LeadFormTemplating from "./pages/LeadFormTemplating";
 import RealtorNotifications from "./pages/Notifications";
 import Messaging from "./pages/Messaging";
 import Realtors from "./pages/Realtors";

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAppContext } from "../context/AppContext";
-import { Button } from "../components/ui/Button";
-import { Input } from "../components/ui/Input";
+import { useAppContext } from "@/context/AppContext";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 import {
   Upload,
   Building2,
@@ -13,7 +13,7 @@ import {
   CheckCircle,
   X,
 } from "lucide-react";
-import { CRM_BASE_DOMAIN, BASE_URL } from "../config";
+import { CRM_BASE_DOMAIN, BASE_URL } from "@/config";
 
 export function WorkspaceDetailsPage() {
   const navigate = useNavigate();

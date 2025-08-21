@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAppContext } from "../context/AppContext";
-import { Button } from "../components/ui/Button";
-import { BASE_URL, CRM_BASE_DOMAIN } from "../config";
+import { useAppContext } from "@/context/AppContext";
+import { Button } from "@/components/ui/Button";
+import { BASE_URL, CRM_BASE_DOMAIN } from "@/config";
 import {
   Plus,
   Settings,
