@@ -78,7 +78,9 @@ export function WorkspacePage() {
     
     const protocol = window.location.protocol;
     const port = window.location.port ? `:${window.location.port}` : '';
-    const targetUrl = `${protocol}//${slug}.${CRM_BASE_DOMAIN}${port}/realtor`;
+    // Remove the .crm part from the domain to navigate directly to workspace subdomain
+    const baseDomain = 'localhost';
+    const targetUrl = `${protocol}//${slug}.${baseDomain}${port}/realtor`;
     
     window.location.assign(targetUrl);
   };
