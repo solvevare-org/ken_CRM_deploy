@@ -1,176 +1,219 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { setSignupData, setVerificationMethod } from '../store/slices/signupSlice';
-import { Button } from '../components/ui/Button';
-import { Input } from '../components/ui/Input';
-import { Mail, Smartphone } from 'lucide-react';
-import { BASE_URL } from '../config';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAppDispatch, useAppSelector } from "../store/hooks";
+import {
+  setSignupData,
+  setVerificationMethod,
+} from "../store/slices/signupSlice";
+import { Button } from "../components/ui/Button";
+import { Input } from "../components/ui/Input";
+import { Mail, Smartphone } from "lucide-react";
+import { BASE_URL } from "../config";
 
 export function AccountVerificationOptionsPage() {
-  const [method, setMethod] = useState<'email' | 'phone' | null>(null);
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [error, setError] = useState('');
+  const [method, setMethod] = useState<"email" | "phone" | null>(null);
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const { userType, verificationMethod } = useAppSelector(state => state.signup);
+  const { userType, verificationMethod } = useAppSelector(
+    (state) => state.signup
+  );
+
+  // Normalize phone to E.164 and validate
+  const normalizePhoneToE164 = (input: string) => {
+    if (!input) return "";
+    const digits = input.replace(/\D/g, "");
+    // If 10 digits assume US and prepend +1
+    if (digits.length === 10) return `+1${digits}`;
+    // If starts with 1 and 11 digits, treat as +1XXXXXXXXXXX
+    if (digits.length === 11 && digits.startsWith("1")) return `+${digits}`;
+    // If length > 10 and looks like it already contains country code, prepend + if missing
+    if (digits.length > 10) return `+${digits}`;
+    // Fallback: return digits (validation will catch unsupported lengths)
+    return digits;
+  };
+
+  const isValidE164 = (value: string) =>
+    /^\u005b\+\u005d?[1-9]\d{1,14}$/.test(value) ||
+    /^\+[1-9]\d{1,14}$/.test(value);
 
   const resetSuccessState = () => {
     setSuccess(false);
-    setError('');
+    setError("");
   };
 
   const handleContinue = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
     setLoading(true);
-    
+
     // Validate names
     if (!firstName.trim()) {
-      setError('First name is required.');
+      setError("First name is required.");
       setLoading(false);
       return;
     }
     if (!lastName.trim()) {
-      setError('Last name is required.');
+      setError("Last name is required.");
       setLoading(false);
       return;
     }
     // Validate password
     if (!password) {
-      setError('Password is required.');
+      setError("Password is required.");
       setLoading(false);
       return;
     }
     if (password.length < 6) {
-      setError('Password must be at least 6 characters.');
+      setError("Password must be at least 6 characters.");
       setLoading(false);
       return;
     }
     if (password !== confirmPassword) {
-      setError('Passwords do not match.');
+      setError("Passwords do not match.");
       setLoading(false);
       return;
     }
     // Validate method
-    if (method === 'email') {
+    if (method === "email") {
       if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
-        setError('Please enter a valid email address.');
+        setError("Please enter a valid email address.");
         setLoading(false);
         return;
       }
-      
-      // Store all data in Redux
-      dispatch(setSignupData({
-        email,
-        password,
-        firstName,
-        lastName,
-        phone: phone || '',
-        verificationMethod: 'email'
-      }));
+      // Normalize phone (if provided) and store in Redux
+      const normalizedPhone = normalizePhoneToE164(phone);
+
+      dispatch(
+        setSignupData({
+          email,
+          password,
+          firstName,
+          lastName,
+          phone: normalizedPhone || "",
+          verificationMethod: "email",
+        })
+      );
 
       // Call signup endpoint directly
       try {
-        const requestBody = {
+        const requestBody: any = {
           email,
           password,
           first_name: firstName,
           last_name: lastName,
-          phone: 1928918912,
-          user_type: userType
+          phone: normalizedPhone || null,
+          user_type: userType,
         };
-        
-        console.log('Sending signup request:', requestBody);
-        
+
+        console.log("Sending signup request:", requestBody);
+
         const response = await fetch(`${BASE_URL}/api/auth/signup`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(requestBody)
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(requestBody),
         });
-        
-        console.log('Response status:', response.status);
-        
+
+        console.log("Response status:", response.status);
+
         if (response.ok) {
           // Show success message before navigating
-          setError('');
+          setError("");
           setSuccess(true);
           // Small delay to show success feedback
           setTimeout(() => {
-            navigate('/verification');
+            navigate("/verification");
           }, 1000);
         } else {
           const errorData = await response.json();
-          console.log('Error response:', errorData);
-          setError(errorData.message || 'Something went wrong during signup. Please try again.');
+          console.log("Error response:", errorData);
+          setError(
+            errorData.message ||
+              "Something went wrong during signup. Please try again."
+          );
         }
       } catch (err) {
-        console.error('Network error:', err);
-        setError('Network error. Please check your connection and try again.');
+        console.error("Network error:", err);
+        setError("Network error. Please check your connection and try again.");
       } finally {
         setLoading(false);
       }
-    } else if (method === 'phone') {
-      if (!phone || !/^\d{10,15}$/.test(phone.replace(/\D/g, ''))) {
-        setError('Please enter a valid phone number.');
+    } else if (method === "phone") {
+      // Basic digit length check first
+      const digits = phone.replace(/\D/g, "");
+      if (!phone || !/^\d{10,15}$/.test(digits)) {
+        setError("Please enter a valid phone number (10-15 digits).");
         setLoading(false);
         return;
       }
-      
-      // Store all data in Redux
-      dispatch(setSignupData({
-        email: email || '',
-        password,
-        firstName,
-        lastName,
-        phone,
-        verificationMethod: 'phone'
-      }));
+
+      const normalizedPhone = normalizePhoneToE164(phone);
+      if (!isValidE164(normalizedPhone)) {
+        setError("Please enter a valid phone number in international format.");
+        setLoading(false);
+        return;
+      }
+
+      // Store all data in Redux with normalized phone
+      dispatch(
+        setSignupData({
+          email: email || "",
+          password,
+          firstName,
+          lastName,
+          phone: normalizedPhone,
+          verificationMethod: "phone",
+        })
+      );
 
       // Call signup endpoint directly
       try {
-        const requestBody = {
+        const requestBody: any = {
           email: email || null,
           password,
           first_name: firstName,
           name: lastName,
-          phone: parseInt(phone) || 0,
-          user_type: userType
+          phone: normalizedPhone,
+          user_type: userType,
         };
-        
-        console.log('Sending signup request:', requestBody);
-        
+
+        console.log("Sending signup request:", requestBody);
+
         const response = await fetch(`${BASE_URL}/api/auth/signup`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(requestBody)
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(requestBody),
         });
-        
-        console.log('Response status:', response.status);
-        
+
+        console.log("Response status:", response.status);
+
         if (response.ok) {
           // Show success message before navigating
-          setError('');
+          setError("");
           setSuccess(true);
           // Small delay to show success feedback
           setTimeout(() => {
-            navigate('/verification');
+            navigate("/verification");
           }, 1000);
         } else {
           const errorData = await response.json();
-          console.log('Error response:', errorData);
-          setError(errorData.message || 'Something went wrong during signup. Please try again.');
+          console.log("Error response:", errorData);
+          setError(
+            errorData.message ||
+              "Something went wrong during signup. Please try again."
+          );
         }
       } catch (err) {
-        console.error('Network error:', err);
-        setError('Network error. Please check your connection and try again.');
+        console.error("Network error:", err);
+        setError("Network error. Please check your connection and try again.");
       } finally {
         setLoading(false);
       }
@@ -180,13 +223,15 @@ export function AccountVerificationOptionsPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
       <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-8">
-        <h2 className="text-2xl font-bold text-black mb-6 text-center">Create Your Account</h2>
+        <h2 className="text-2xl font-bold text-black mb-6 text-center">
+          Create Your Account
+        </h2>
         <form onSubmit={handleContinue} className="space-y-6">
           <Input
             label="First Name"
             type="text"
             value={firstName}
-            onChange={e => {
+            onChange={(e) => {
               setFirstName(e.target.value);
               resetSuccessState();
             }}
@@ -198,7 +243,7 @@ export function AccountVerificationOptionsPage() {
             label="Last Name"
             type="text"
             value={lastName}
-            onChange={e => {
+            onChange={(e) => {
               setLastName(e.target.value);
               resetSuccessState();
             }}
@@ -210,7 +255,7 @@ export function AccountVerificationOptionsPage() {
             label="Password"
             type="password"
             value={password}
-            onChange={e => {
+            onChange={(e) => {
               setPassword(e.target.value);
               resetSuccessState();
             }}
@@ -222,7 +267,7 @@ export function AccountVerificationOptionsPage() {
             label="Confirm Password"
             type="password"
             value={confirmPassword}
-            onChange={e => {
+            onChange={(e) => {
               setConfirmPassword(e.target.value);
               resetSuccessState();
             }}
@@ -230,13 +275,19 @@ export function AccountVerificationOptionsPage() {
             required
             className="text-black"
           />
-          <h3 className="text-lg font-semibold text-black mt-4 mb-2 text-center">Choose Verification Method</h3>
+          <h3 className="text-lg font-semibold text-black mt-4 mb-2 text-center">
+            Choose Verification Method
+          </h3>
           <div className="flex items-center justify-center gap-6 mb-6">
             <button
               type="button"
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg border ${method === 'email' ? 'border-blue-500 bg-blue-50' : 'border-gray-300 bg-gray-100'} text-black font-medium focus:outline-none`}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg border ${
+                method === "email"
+                  ? "border-blue-500 bg-blue-50"
+                  : "border-gray-300 bg-gray-100"
+              } text-black font-medium focus:outline-none`}
               onClick={() => {
-                setMethod('email');
+                setMethod("email");
                 resetSuccessState();
               }}
             >
@@ -244,21 +295,25 @@ export function AccountVerificationOptionsPage() {
             </button>
             <button
               type="button"
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg border ${method === 'phone' ? 'border-green-500 bg-green-50' : 'border-gray-300 bg-gray-100'} text-black font-medium focus:outline-none`}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg border ${
+                method === "phone"
+                  ? "border-green-500 bg-green-50"
+                  : "border-gray-300 bg-gray-100"
+              } text-black font-medium focus:outline-none`}
               onClick={() => {
-                setMethod('phone');
+                setMethod("phone");
                 resetSuccessState();
               }}
             >
               <Smartphone className="w-5 h-5" /> Phone Number
             </button>
           </div>
-          {method === 'email' && (
+          {method === "email" && (
             <Input
               label="Email Address"
               type="email"
               value={email}
-              onChange={e => {
+              onChange={(e) => {
                 setEmail(e.target.value);
                 resetSuccessState();
               }}
@@ -267,12 +322,12 @@ export function AccountVerificationOptionsPage() {
               className="text-black"
             />
           )}
-          {method === 'phone' && (
+          {method === "phone" && (
             <Input
               label="Phone Number"
               type="tel"
               value={phone}
-              onChange={e => {
+              onChange={(e) => {
                 setPhone(e.target.value);
                 resetSuccessState();
               }}
@@ -283,10 +338,13 @@ export function AccountVerificationOptionsPage() {
           )}
           {success && (
             <div className="text-green-600 text-sm text-center bg-green-50 p-3 rounded-lg">
-              ✓ Account created successfully! Check your {verificationMethod} for verification code. Redirecting...
+              ✓ Account created successfully! Check your {verificationMethod}{" "}
+              for verification code. Redirecting...
             </div>
           )}
-          {error && <div className="text-red-600 text-sm text-center">{error}</div>}
+          {error && (
+            <div className="text-red-600 text-sm text-center">{error}</div>
+          )}
           <Button
             type="submit"
             className="w-full"
@@ -298,12 +356,12 @@ export function AccountVerificationOptionsPage() {
               !lastName.trim() ||
               !password ||
               !confirmPassword ||
-              (method === 'email' && !email) ||
-              (method === 'phone' && !phone) ||
+              (method === "email" && !email) ||
+              (method === "phone" && !phone) ||
               loading
             }
           >
-            {loading ? 'Creating Account...' : 'Create Account'}
+            {loading ? "Creating Account..." : "Create Account"}
           </Button>
         </form>
       </div>
