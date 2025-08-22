@@ -1,35 +1,36 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import api, { handleApiError } from "@/utils/api"; // Adjust path as needed
-import {
-  ApiResponse,
-  AuthState,
-  LoginData,
-  SignupData,
-  User,
-} from "@/types/authTypes";
+import { ApiResponse, AuthState, LoginData, User } from "@/types/authTypes";
+import type { SignUpSchemaType } from "@/schema/signupSchema";
+
+// Payload for signup includes the form fields plus optional user_type
+type SignUpPayload = SignUpSchemaType & { user_type?: string | null };
 
 const BASE_URL = "api/auth";
 
-// Async thunks
+// Signup
 export const signup = createAsyncThunk<
   ApiResponse,
-  SignupData,
+  SignUpPayload,
   { rejectValue: string }
->("auth/signup", async (signupData, { rejectWithValue }) => {
+>("auth/signup", async (payload, { rejectWithValue }) => {
   try {
-    const response = await api.post<ApiResponse>(
-      `${BASE_URL}/signup`,
-      signupData
-    );
+    const response = await api.post<ApiResponse>(`${BASE_URL}/signup`, payload);
     return response.data;
   } catch (error) {
+    console.log(error);
     const errorMessage = handleApiError(error);
     return rejectWithValue(errorMessage);
   }
 });
 
+// Login
 export const login = createAsyncThunk<
-  ApiResponse<{ token: string; user_type: string }>,
+  ApiResponse<{
+    workspace?: any;
+    token: string;
+    user_type: string;
+  }>,
   LoginData,
   { rejectValue: string }
 >("auth/login", async (loginData, { rejectWithValue }) => {
@@ -88,7 +89,7 @@ export const clientSignup = createAsyncThunk<
   }
 });
 
-// Additional thunk for logout
+// logout
 export const logout = createAsyncThunk<void, void, { rejectValue: string }>(
   `${BASE_URL}/logout`,
   async (_, { rejectWithValue }) => {
@@ -102,8 +103,12 @@ export const logout = createAsyncThunk<void, void, { rejectValue: string }>(
   }
 );
 
+
+
 // Initial state
 const initialState: AuthState = {
+  email: "",
+  verificationMethod: null,
   user: null,
   token: null,
   user_type: null, // Add user_type to state
@@ -125,6 +130,25 @@ const authSlice = createSlice({
   name: "auth",
   initialState,
   reducers: {
+    // Set email
+    setEmail: (state, action: PayloadAction<string>) => {
+      state.email = action.payload;
+    },
+    setVerificationMethod: (
+      state,
+      action: PayloadAction<"email" | "sms" | null>
+    ) => {
+      state.verificationMethod = action.payload;
+    },
+
+    setUserType: (state, action: PayloadAction<string>) => {
+      state.user_type = action.payload;
+    },
+
+    clearSignupData: (state) => {
+      state.email = "";
+      state.verificationMethod = null;
+    },
     // Clear error
     clearError: (state) => {
       state.error = null;
@@ -258,8 +282,17 @@ const authSlice = createSlice({
 });
 
 // Export actions
-export const { clearError, clearSignupSuccess, setUser, setToken, resetAuth } =
-  authSlice.actions;
+export const {
+  setEmail,
+  setVerificationMethod,
+  clearSignupData,
+  setUserType,
+  clearError,
+  clearSignupSuccess,
+  setUser,
+  setToken,
+  resetAuth,
+} = authSlice.actions;
 
 // Selectors
 export const selectAuth = (state: { auth: AuthState }) => state.auth;

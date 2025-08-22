@@ -27,6 +27,8 @@ export interface LoginData {
 }
 
 export interface AuthState {
+  email: string;
+  verificationMethod: "email" | "sms" | null;
   user: User | null;
   token: string | null;
   user_type: string | null;

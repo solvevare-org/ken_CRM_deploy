@@ -1,10 +1,13 @@
 import { configureStore } from "@reduxjs/toolkit";
+import storage from "redux-persist/lib/storage";
+import { persistStore, persistReducer } from "redux-persist";
+
+// Slices
 import signupReducer from "./slices/signupSlice";
 import leadFormLinkReducer from "./slices/leadFormLinkSlice";
 import realtorReducer from "./slices/realtorSlice";
 import authReducer from "./slices/authSlice"; // Adjust path as needed
-import { persistStore, persistReducer } from "redux-persist";
-import storage from "redux-persist/lib/storage";
+import otherAuthReducer from "./slices/otherAuthSlice";
 
 // Persist configuration for auth slice
 const authPersistConfig = {
@@ -13,15 +16,26 @@ const authPersistConfig = {
   whitelist: ["token", "user", "isAuthenticated", "user_type"], // Only persist these fields
 };
 
+const realtorPersistConfig = {
+  key: "realtor",
+  storage,
+  whitelist: ["leadCount", "clientCount", "propertyCount"], // Only persist the dashboard counts fields
+};
+
 // Create persisted reducer
 const persistedAuthReducer = persistReducer(authPersistConfig, authReducer);
+const persistedRealtorReducer = persistReducer(
+  realtorPersistConfig,
+  realtorReducer
+);
 
 const store = configureStore({
   reducer: {
     signup: signupReducer,
     leadFormLink: leadFormLinkReducer,
     auth: persistedAuthReducer,
-    realtor: realtorReducer,
+    otherAuth: otherAuthReducer,
+    realtor: persistedRealtorReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

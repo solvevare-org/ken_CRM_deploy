@@ -55,4 +55,9 @@ export interface RealtorState {
   // Add lead to campaign
   addToCampaignLoading: boolean;
   addToCampaignError: string | null;
+
+  // Dashboard counts
+  leadCount: number;
+  clientCount: number;
+  propertyCount: number;
 }

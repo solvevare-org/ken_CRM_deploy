@@ -1,47 +1,48 @@
-import React from 'react';
-import { 
-  DollarSign, 
-  Building2, 
-  Users, 
-  TrendingUp,
-  Eye,
-  Calendar
-} from 'lucide-react';
+import React, { useEffect } from "react";
+import { Building2, Users, TrendingUp } from "lucide-react";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { dashboardCounts } from "@/store/slices/realtorSlice";
 
 const StatsCards: React.FC = () => {
+  const dispatch = useAppDispatch();
+  const { leadCount, clientCount, propertyCount } = useAppSelector((state) => ({
+    leadCount: state.realtor.leadCount,
+    clientCount: state.realtor.clientCount,
+    propertyCount: state.realtor.propertyCount,
+  }));
+
+  useEffect(() => {
+    // Fetch dashboard counts on mount if not yet loaded
+    if (leadCount === 0 && clientCount === 0 && propertyCount === 0) {
+      dispatch(dashboardCounts());
+    }
+  }, [dispatch, leadCount, clientCount, propertyCount]);
+
   const stats = [
     {
-      title: 'Total Revenue',
-      value: '$2,847,500',
-      change: '+12.5%',
-      changeType: 'positive',
-      icon: DollarSign,
-      period: 'This month'
-    },
-    {
-      title: 'Active Listings',
-      value: '24',
-      change: '+3',
-      changeType: 'positive',
+      title: "Active Listings",
+      value: Number(propertyCount || 0),
+      change: "+3",
+      changeType: "positive",
       icon: Building2,
-      period: 'Current'
+      period: "Current",
     },
     {
-      title: 'Total Clients',
-      value: '89',
-      change: '+7',
-      changeType: 'positive',
+      title: "Total Clients",
+      value: Number(clientCount || 0),
+      change: "+7",
+      changeType: "positive",
       icon: Users,
-      period: 'Active'
+      period: "Active",
     },
     {
-      title: 'Properties Sold',
-      value: '156',
-      change: '+23%',
-      changeType: 'positive',
+      title: "Total Leads",
+      value: Number(leadCount || 0),
+      change: "+23%",
+      changeType: "positive",
       icon: TrendingUp,
-      period: 'This year'
-    }
+      period: "This year",
+    },
   ];
 
   return (
@@ -49,18 +50,31 @@ const StatsCards: React.FC = () => {
       {stats.map((stat, index) => {
         const Icon = stat.icon;
         return (
-          <div key={index} className="bg-white p-4 lg:p-6 rounded-lg shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+          <div
+            key={index}
+            className="bg-white p-4 lg:p-6 rounded-lg shadow-sm border border-gray-100 hover:shadow-md transition-shadow"
+          >
             <div className="flex items-start justify-between">
               <div className="flex-1">
-                <p className="text-sm font-medium text-gray-600">{stat.title}</p>
-                <p className="text-xl lg:text-2xl font-bold text-gray-900 mt-2">{stat.value}</p>
+                <p className="text-sm font-medium text-gray-600">
+                  {stat.title}
+                </p>
+                <p className="text-xl lg:text-2xl font-bold text-gray-900 mt-2">
+                  {stat.value}
+                </p>
                 <div className="flex items-center mt-2 space-x-2">
-                  <span className={`text-sm font-medium ${
-                    stat.changeType === 'positive' ? 'text-emerald-600' : 'text-red-600'
-                  }`}>
+                  <span
+                    className={`text-sm font-medium ${
+                      stat.changeType === "positive"
+                        ? "text-emerald-600"
+                        : "text-red-600"
+                    }`}
+                  >
                     {stat.change}
                   </span>
-                  <span className="text-xs lg:text-sm text-gray-500">{stat.period}</span>
+                  <span className="text-xs lg:text-sm text-gray-500">
+                    {stat.period}
+                  </span>
                 </div>
               </div>
               <div className="w-10 h-10 lg:w-12 lg:h-12 bg-blue-50 rounded-lg flex items-center justify-center">

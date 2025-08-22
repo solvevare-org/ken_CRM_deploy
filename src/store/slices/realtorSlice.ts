@@ -84,6 +84,22 @@ export const addLeadToCampaign = createAsyncThunk(
   }
 );
 
+export const dashboardCounts = createAsyncThunk(
+  "realtor/dashboardCounts",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await api.get(`${API_BASE_URL}/counts`);
+      return response.data.data as {
+        leadCount: number;
+        clientCount: number;
+        propertyCount: number;
+      };
+    } catch (error) {
+      return rejectWithValue(handleApiError(error));
+    }
+  }
+);
+
 const initialState: RealtorState = {
   realtors: [],
   realtorsLoading: false,
@@ -107,6 +123,10 @@ const initialState: RealtorState = {
 
   addToCampaignLoading: false,
   addToCampaignError: null,
+
+  leadCount: 0,
+  clientCount: 0,
+  propertyCount: 0,
 };
 
 // Slice
@@ -293,6 +313,48 @@ const realtorSlice = createSlice({
       .addCase(addLeadToCampaign.rejected, (state, action) => {
         state.addToCampaignLoading = false;
         state.addToCampaignError = action.payload as string;
+      });
+
+    builder
+      .addCase(dashboardCounts.pending, (state) => {
+        state.leadCount = 0;
+        state.clientCount = 0;
+        state.propertyCount = 0;
+      })
+      .addCase(
+        dashboardCounts.fulfilled,
+        (
+          state,
+          action: PayloadAction<{
+            // support either shape returned by the API
+            leadCount?: number;
+            clientCount?: number;
+            propertyCount?: number;
+            leads?: number;
+            clients?: number;
+            properties?: number;
+          }>
+        ) => {
+          const payload = action.payload as any;
+          state.leadCount =
+            (typeof payload.leadCount === "number" && payload.leadCount) ||
+            (typeof payload.leads === "number" && payload.leads) ||
+            0;
+          state.clientCount =
+            (typeof payload.clientCount === "number" && payload.clientCount) ||
+            (typeof payload.clients === "number" && payload.clients) ||
+            0;
+          state.propertyCount =
+            (typeof payload.propertyCount === "number" &&
+              payload.propertyCount) ||
+            (typeof payload.properties === "number" && payload.properties) ||
+            0;
+        }
+      )
+      .addCase(dashboardCounts.rejected, (state) => {
+        state.leadCount = 0;
+        state.clientCount = 0;
+        state.propertyCount = 0;
       });
   },
 });

@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/Input";
 import { Mail, Lock, Sparkles, Zap } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { selectIsLoading, login } from "@/store/slices/authSlice";
+import { CRM_BASE_DOMAIN } from "@/config";
 
 export function LoginPage() {
   const [email, setEmail] = useState("");
@@ -22,6 +23,20 @@ export function LoginPage() {
   useEffect(() => {
     console.debug("auth loading changed:", loading);
   }, [loading]);
+
+  // Navigate to workspace subdomain
+  const handleWorkspaceClick = (workspace: any) => {
+    const slug = workspace.name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, "");
+
+    const protocol = window.location.protocol;
+    const port = window.location.port ? `:${window.location.port}` : "";
+    const targetUrl = `${protocol}//${slug}.${CRM_BASE_DOMAIN}${port}/client`;
+
+    window.location.assign(targetUrl);
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,7 +56,7 @@ export function LoginPage() {
       if (result.data?.user_type === "Realtor") {
         navigate("/workspace");
       } else if (result.data?.user_type === "Client") {
-        navigate("/client");
+        handleWorkspaceClick(result.data?.workspace);
       } else {
         // Default fallback
         navigate("/workspace");

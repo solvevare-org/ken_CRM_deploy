@@ -24,7 +24,7 @@ import { SignupOptionsPage } from "@/pages/auth-pages/SignupOptionsPage";
 import { AccountVerificationOptionsPage } from "@/pages/auth-pages/AccountVerificationOptionsPage";
 import { TeamInvitePage } from "@/pages/TeamInvitePage";
 import { PaymentPage } from "@/pages/PaymentPage";
-import { VerificationPage } from "@/pages/VerificationPage";
+import { VerificationPage } from "@/pages/auth-pages/VerificationPage";
 import { CheckoutPage } from "@/pages/CheckoutPage";
 
 // Pages - Workspace pages
