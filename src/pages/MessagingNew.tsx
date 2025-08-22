@@ -1,3 +1,4 @@
+import React from 'react';
 import RealTimeChat from '../components/RealTimeChat';
 
 function Messaging() {
