@@ -1,12 +1,57 @@
-import axios, { AxiosError } from "axios";
+import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
 import { ApiErrorResponse } from "../types";
+import store from "@/store/store"; // Import your store
 
 // Configure axios defaults
 const api = axios.create({
-  //   baseURL: process.env.REACT_APP_API_URL || "http://localhost:5000",
   baseURL: "http://localhost:3000",
   withCredentials: true, // For HTTP-only cookies
 });
+
+// Define public routes that don't need Authorization header
+const PUBLIC_ROUTES = ["/api/auth/login", "/api/auth/signup"];
+
+// Helper function to check if route is public
+const isPublicRoute = (url: string = ""): boolean => {
+  return PUBLIC_ROUTES.some((route) => url.includes(route));
+};
+
+// Request interceptor to add Authorization header
+api.interceptors.request.use(
+  (config: InternalAxiosRequestConfig) => {
+    // Skip adding auth header for public routes
+    if (isPublicRoute(config.url)) {
+      return config;
+    }
+
+    // Get token from Redux state
+    const state = store.getState();
+    const token = state.auth?.token;
+
+    if (token) {
+      config.headers = config.headers || {};
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Response interceptor for handling auth errors
+api.interceptors.response.use(
+  (response) => response,
+  (error: AxiosError) => {
+    // Handle 401 unauthorized errors
+    if (error.response?.status === 401) {
+      // You can dispatch a logout action here if needed
+      // store.dispatch(logout());
+    }
+    return Promise.reject(error);
+  }
+);
 
 export default api;
 

@@ -9,7 +9,7 @@ import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   clientSignUpSchema,
-  ClientSignUpSchema,
+  ClientSignUpSchema
 } from "@/schema/clientSignUpSchema";
 import { Eye, EyeOff, Mail, Phone, X } from "lucide-react";
 import { useAppDispatch } from "@/store/hooks";

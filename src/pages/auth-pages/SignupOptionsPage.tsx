@@ -1,7 +1,7 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { useAppDispatch } from "@/store/hooks";
-import { setUserType } from "@/store/slices/signupSlice";
+import { setUserType } from "@/store/slices/authSlice";
 import { Button } from "@/components/ui/Button";
 import { User, Building2, ArrowRight } from "lucide-react";
 

@@ -23,6 +23,7 @@ export const getWorkspaces = createAsyncThunk<
 >("workspace/getWorkspaces", async (_, { rejectWithValue }) => {
   try {
     const response = await api.get<ApiResponse<Workspace[]>>(API_BASE_URL);
+    console.log(response);
     return response.data;
   } catch (error) {
     return rejectWithValue(handleApiError(error));

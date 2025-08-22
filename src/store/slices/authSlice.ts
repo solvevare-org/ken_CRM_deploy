@@ -1,50 +1,47 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import api, { handleApiError } from "@/utils/api"; // Adjust path as needed
-import {
-  ApiResponse,
-  AuthState,
-  LoginData,
-  SignupData,
-  User,
-} from "@/types/authTypes";
+import { ApiResponse, AuthState, LoginData, User } from "@/types/authTypes";
+import type { SignUpSchemaType } from "@/schema/signupSchema";
+
+// Payload for signup includes the form fields plus optional user_type
+type SignUpPayload = SignUpSchemaType & { user_type?: string | null };
 
 const BASE_URL = "api/auth";
 
-// Async thunks
+// Signup
 export const signup = createAsyncThunk<
   ApiResponse,
-  SignupData,
+  SignUpPayload,
   { rejectValue: string }
->("auth/signup", async (signupData, { rejectWithValue }) => {
+>("auth/signup", async (payload, { rejectWithValue }) => {
   try {
-    const response = await api.post<ApiResponse>(
-      `${BASE_URL}/signup`,
-      signupData
-    );
+    const response = await api.post<ApiResponse>(`${BASE_URL}/signup`, payload);
     return response.data;
   } catch (error) {
+    console.log(error);
     const errorMessage = handleApiError(error);
     return rejectWithValue(errorMessage);
   }
 });
 
+// Login
 export const login = createAsyncThunk<
-  ApiResponse<{ token: string; user?: User }>,
+  ApiResponse<{
+    workspace?: any;
+    token: string;
+    user_type: string;
+  }>,
   LoginData,
   { rejectValue: string }
 >("auth/login", async (loginData, { rejectWithValue }) => {
   try {
     const response = await api.post<
-      ApiResponse<{ token: string; user?: User }>
-    >(`${BASE_URL}/login`, loginData);
-
-    // Store token in localStorage if login is successful
-    if (response.data.data?.token) {
-      localStorage.setItem("accessToken", response.data.data.token);
-    }
+      ApiResponse<{ token: string; user_type: string }>
+    >(`/api/auth/login`, loginData);
 
     return response.data;
   } catch (error) {
+    console.log(error);
     const errorMessage = handleApiError(error);
     return rejectWithValue(errorMessage);
   }
@@ -92,16 +89,13 @@ export const clientSignup = createAsyncThunk<
   }
 });
 
-// Additional thunk for logout
+// logout
 export const logout = createAsyncThunk<void, void, { rejectValue: string }>(
   `${BASE_URL}/logout`,
   async (_, { rejectWithValue }) => {
     try {
       // Call logout endpoint if you have one
       // await api.post('/logout');
-
-      // Remove token from localStorage
-      localStorage.removeItem("accessToken");
     } catch (error) {
       const errorMessage = handleApiError(error);
       return rejectWithValue(errorMessage);
@@ -109,11 +103,16 @@ export const logout = createAsyncThunk<void, void, { rejectValue: string }>(
   }
 );
 
+
+
 // Initial state
 const initialState: AuthState = {
+  email: "",
+  verificationMethod: null,
   user: null,
-  token: localStorage.getItem("accessToken"),
-  isAuthenticated: !!localStorage.getItem("accessToken"),
+  token: null,
+  user_type: null, // Add user_type to state
+  isAuthenticated: false,
   isLoading: false,
   error: null,
   signupSuccess: false,
@@ -131,6 +130,25 @@ const authSlice = createSlice({
   name: "auth",
   initialState,
   reducers: {
+    // Set email
+    setEmail: (state, action: PayloadAction<string>) => {
+      state.email = action.payload;
+    },
+    setVerificationMethod: (
+      state,
+      action: PayloadAction<"email" | "sms" | null>
+    ) => {
+      state.verificationMethod = action.payload;
+    },
+
+    setUserType: (state, action: PayloadAction<string>) => {
+      state.user_type = action.payload;
+    },
+
+    clearSignupData: (state) => {
+      state.email = "";
+      state.verificationMethod = null;
+    },
     // Clear error
     clearError: (state) => {
       state.error = null;
@@ -144,6 +162,12 @@ const authSlice = createSlice({
     // Set user manually (useful for token-based auth persistence)
     setUser: (state, action: PayloadAction<User>) => {
       state.user = action.payload;
+      state.isAuthenticated = true;
+    },
+
+    // Set token manually (useful for hydrating from cookie/localStorage on app start)
+    setToken: (state, action: PayloadAction<string>) => {
+      state.token = action.payload;
       state.isAuthenticated = true;
     },
 
@@ -221,16 +245,16 @@ const authSlice = createSlice({
         state.isLoading = false;
         state.isAuthenticated = true;
         state.token = action.payload.data?.token || null;
-        state.user = action.payload.data?.user || null;
+        state.user_type = action.payload.data?.user_type || null;
         state.error = null;
       })
       .addCase(login.rejected, (state, action) => {
         state.isLoading = false;
         state.isAuthenticated = false;
         state.token = null;
+        state.user_type = null;
         state.user = null;
         state.error = action.payload || "Login failed";
-        localStorage.removeItem("accessToken");
       });
 
     // Logout cases
@@ -244,6 +268,7 @@ const authSlice = createSlice({
         state.token = null;
         state.user = null;
         state.error = null;
+        // Token/cookie is managed by backend; frontend shouldn't remove cookies.
       })
       .addCase(logout.rejected, (state, action) => {
         state.isLoading = false;
@@ -257,12 +282,22 @@ const authSlice = createSlice({
 });
 
 // Export actions
-export const { clearError, clearSignupSuccess, setUser, resetAuth } =
-  authSlice.actions;
+export const {
+  setEmail,
+  setVerificationMethod,
+  clearSignupData,
+  setUserType,
+  clearError,
+  clearSignupSuccess,
+  setUser,
+  setToken,
+  resetAuth,
+} = authSlice.actions;
 
 // Selectors
 export const selectAuth = (state: { auth: AuthState }) => state.auth;
 export const selectUser = (state: { auth: AuthState }) => state.auth.user;
+export const selectUserToken = (state: { auth: AuthState }) => state.auth.token;
 export const selectIsAuthenticated = (state: { auth: AuthState }) =>
   state.auth.isAuthenticated;
 export const selectIsLoading = (state: { auth: AuthState }) =>

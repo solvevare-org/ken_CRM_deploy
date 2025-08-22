@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, Plus, MapPin, Bed, Bath, Square, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Filter, Plus, MapPin, Bed, Bath, Square, ChevronLeft, ChevronRight, X, Upload } from 'lucide-react';
 import api from '../utils/api';
 
 // Define the backend data structure types
@@ -90,6 +90,57 @@ const Properties: React.FC = () => {
     hasNextPage: false,
     currentPage: 1
   });
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [formLoading, setFormLoading] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+
+  // Form state
+  const [formData, setFormData] = useState({
+    name: '',
+    number_of_units: 1,
+    price: '',
+    status: 'Available',
+    dimensions: '',
+    address: {
+      street: '',
+      city: '',
+      state: '',
+      postal_code: '',
+      country: 'USA'
+    },
+    description: '',
+    images: [''],
+    tags: [''],
+    property_type: 'single_family',
+    source_type: 'realtor',
+    location: {
+      latitude: '',
+      longitude: ''
+    },
+    details: {
+      beds: '',
+      baths: '',
+      baths_full: '',
+      baths_half: '',
+      sqft: '',
+      lot_sqft: '',
+      year_built: ''
+    },
+    media: {
+      primary_photo: '',
+      photo_count: 0
+    },
+    flags: {
+      is_new_listing: true,
+      is_pending: false,
+      is_contingent: false,
+      is_foreclosure: false,
+      is_new_construction: false,
+      is_plan: false,
+      is_coming_soon: false,
+      is_price_reduced: false
+    }
+  });
 
   // Fetch properties from backend
   const fetchProperties = async (cursor?: string) => {
@@ -151,6 +202,152 @@ const Properties: React.FC = () => {
       currentPage: 1
     });
     fetchProperties();
+  };
+
+  // Handle form input changes
+  const handleInputChange = (field: string, value: any, nestedField?: string) => {
+    if (nestedField) {
+      setFormData(prev => ({
+        ...prev,
+        [field]: {
+          ...prev[field as keyof typeof prev],
+          [nestedField]: value
+        }
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [field]: value
+      }));
+    }
+  };
+
+  // Handle array field changes
+  const handleArrayChange = (field: string, index: number, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: prev[field as keyof typeof prev].map((item: any, i: number) => 
+        i === index ? value : item
+      )
+    }));
+  };
+
+  // Add new item to array fields
+  const addArrayItem = (field: string) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: [...prev[field as keyof typeof prev], '']
+    }));
+  };
+
+  // Remove item from array fields
+  const removeArrayItem = (field: string, index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: prev[field as keyof typeof prev].filter((_: any, i: number) => i !== index)
+    }));
+  };
+
+  // Handle form submission
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormLoading(true);
+    setFormError(null);
+
+    try {
+      // Clean up form data - remove empty strings from arrays
+      const cleanedData = {
+        ...formData,
+        images: formData.images.filter(img => img.trim() !== ''),
+        tags: formData.tags.filter(tag => tag.trim() !== ''),
+        details: {
+          ...formData.details,
+          beds: formData.details.beds ? parseInt(formData.details.beds) : undefined,
+          baths: formData.details.baths ? parseInt(formData.details.baths) : undefined,
+          baths_full: formData.details.baths_full ? parseInt(formData.details.baths_full) : undefined,
+          baths_half: formData.details.baths_half ? parseInt(formData.details.baths_half) : undefined,
+          sqft: formData.details.sqft ? parseInt(formData.details.sqft) : undefined,
+          lot_sqft: formData.details.lot_sqft ? parseInt(formData.details.lot_sqft) : undefined,
+          year_built: formData.details.year_built ? parseInt(formData.details.year_built) : undefined,
+        },
+        location: {
+          latitude: formData.location.latitude ? parseFloat(formData.location.latitude) : undefined,
+          longitude: formData.location.longitude ? parseFloat(formData.location.longitude) : undefined,
+        },
+        price: parseInt(formData.price),
+        number_of_units: parseInt(formData.number_of_units.toString()),
+        media: {
+          ...formData.media,
+          photo_count: formData.images.filter(img => img.trim() !== '').length
+        }
+      };
+
+      // Remove undefined values
+      const finalData = JSON.parse(JSON.stringify(cleanedData, (key, value) => 
+        value === undefined ? undefined : value
+      ));
+
+      const response = await api.post('/api/property/add-property/', finalData);
+      
+      if (response.data.success) {
+        // Close modal and refresh properties
+        setShowAddModal(false);
+        setFormData({
+          name: '',
+          number_of_units: 1,
+          price: '',
+          status: 'Available',
+          dimensions: '',
+          address: {
+            street: '',
+            city: '',
+            state: '',
+            postal_code: '',
+            country: 'USA'
+          },
+          description: '',
+          images: [''],
+          tags: [''],
+          property_type: 'single_family',
+          source_type: 'realtor',
+          location: {
+            latitude: '',
+            longitude: ''
+          },
+          details: {
+            beds: '',
+            baths: '',
+            baths_full: '',
+            baths_half: '',
+            sqft: '',
+            lot_sqft: '',
+            year_built: ''
+          },
+          media: {
+            primary_photo: '',
+            photo_count: 0
+          },
+          flags: {
+            is_new_listing: true,
+            is_pending: false,
+            is_contingent: false,
+            is_foreclosure: false,
+            is_new_construction: false,
+            is_plan: false,
+            is_coming_soon: false,
+            is_price_reduced: false
+          }
+        });
+        fetchProperties(); // Refresh the properties list
+      } else {
+        throw new Error(response.data.message || 'Failed to add property');
+      }
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : 'Failed to add property');
+      console.error('Error adding property:', err);
+    } finally {
+      setFormLoading(false);
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -216,7 +413,10 @@ const Properties: React.FC = () => {
           <h1 className="text-xl lg:text-2xl font-bold text-gray-900">Properties</h1>
           <p className="text-sm lg:text-base text-gray-600 mt-1">Manage your property listings</p>
         </div>
-        <button className="mt-4 sm:mt-0 inline-flex items-center px-3 lg:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm lg:text-base">
+        <button 
+          onClick={() => setShowAddModal(true)}
+          className="mt-4 sm:mt-0 inline-flex items-center px-3 lg:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm lg:text-base"
+        >
           <Plus className="w-4 h-4 mr-2" />
           Add Property
         </button>
@@ -389,6 +589,439 @@ const Properties: React.FC = () => {
             >
               Retry
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Add Property Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <h2 className="text-xl font-semibold text-gray-900">Add New Property</h2>
+              <button
+                onClick={() => setShowAddModal(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="p-6 space-y-6">
+              {formError && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <div className="flex items-center">
+                    <div className="text-red-500 mr-2">⚠️</div>
+                    <span className="text-red-700">{formError}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Basic Information */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Property Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.name}
+                    onChange={(e) => handleInputChange('name', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Enter property name"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Price *
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    value={formData.price}
+                    onChange={(e) => handleInputChange('price', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Enter price"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Status *
+                  </label>
+                  <select
+                    value={formData.status}
+                    onChange={(e) => handleInputChange('status', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="Available">Available</option>
+                    <option value="Pending">Pending</option>
+                    <option value="Sold">Sold</option>
+                    <option value="Contingent">Contingent</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Property Type *
+                  </label>
+                  <select
+                    value={formData.property_type}
+                    onChange={(e) => handleInputChange('property_type', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="single_family">Single Family</option>
+                    <option value="condo">Condo</option>
+                    <option value="townhouse">Townhouse</option>
+                    <option value="multi_family">Multi Family</option>
+                    <option value="land">Land</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Number of Units
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={formData.number_of_units}
+                    onChange={(e) => handleInputChange('number_of_units', parseInt(e.target.value))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Dimensions
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.dimensions}
+                    onChange={(e) => handleInputChange('dimensions', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="e.g., 2500 sq ft"
+                  />
+                </div>
+              </div>
+
+              {/* Address */}
+              <div className="border-t border-gray-200 pt-6">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Address</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Street *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={formData.address.street}
+                      onChange={(e) => handleInputChange('address', e.target.value, 'street')}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Enter street address"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      City *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={formData.address.city}
+                      onChange={(e) => handleInputChange('address', e.target.value, 'city')}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Enter city"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      State *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={formData.address.state}
+                      onChange={(e) => handleInputChange('address', e.target.value, 'state')}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Enter state"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Postal Code *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={formData.address.postal_code}
+                      onChange={(e) => handleInputChange('address', e.target.value, 'postal_code')}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Enter postal code"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Country *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={formData.address.country}
+                      onChange={(e) => handleInputChange('address', e.target.value, 'country')}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Enter country"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Property Details */}
+              <div className="border-t border-gray-200 pt-6">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Property Details</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Bedrooms
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={formData.details.beds}
+                      onChange={(e) => handleInputChange('details', e.target.value, 'beds')}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="0"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Bathrooms
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.5"
+                      value={formData.details.baths}
+                      onChange={(e) => handleInputChange('details', e.target.value, 'baths')}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="0"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Square Feet
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={formData.details.sqft}
+                      onChange={(e) => handleInputChange('details', e.target.value, 'sqft')}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="0"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Lot Square Feet
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={formData.details.lot_sqft}
+                      onChange={(e) => handleInputChange('details', e.target.value, 'lot_sqft')}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="0"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Year Built
+                    </label>
+                    <input
+                      type="number"
+                      min="1800"
+                      max={new Date().getFullYear()}
+                      value={formData.details.year_built}
+                      onChange={(e) => handleInputChange('details', e.target.value, 'year_built')}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Year"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Location Coordinates */}
+              <div className="border-t border-gray-200 pt-6">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Location Coordinates</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Latitude
+                    </label>
+                    <input
+                      type="number"
+                      step="any"
+                      value={formData.location.latitude}
+                      onChange={(e) => handleInputChange('location', e.target.value, 'latitude')}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="e.g., 34.0736"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Longitude
+                    </label>
+                    <input
+                      type="number"
+                      step="any"
+                      value={formData.location.longitude}
+                      onChange={(e) => handleInputChange('location', e.target.value, 'longitude')}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="e.g., -118.4004"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Images */}
+              <div className="border-t border-gray-200 pt-6">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Images</h3>
+                <div className="space-y-3">
+                  {formData.images.map((image, index) => (
+                    <div key={index} className="flex items-center space-x-3">
+                      <input
+                        type="url"
+                        value={image}
+                        onChange={(e) => handleArrayChange('images', index, e.target.value)}
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Enter image URL"
+                      />
+                      {formData.images.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removeArrayItem('images', index)}
+                          className="px-3 py-2 text-red-600 hover:text-red-800 transition-colors"
+                        >
+                          <X className="w-5 h-5" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => addArrayItem('images')}
+                    className="inline-flex items-center px-3 py-2 text-sm text-blue-600 hover:text-blue-800 transition-colors"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Image URL
+                  </button>
+                </div>
+              </div>
+
+              {/* Tags */}
+              <div className="border-t border-gray-200 pt-6">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Tags</h3>
+                <div className="space-y-3">
+                  {formData.tags.map((tag, index) => (
+                    <div key={index} className="flex items-center space-x-3">
+                      <input
+                        type="text"
+                        value={tag}
+                        onChange={(e) => handleArrayChange('tags', index, e.target.value)}
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Enter tag"
+                      />
+                      {formData.tags.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removeArrayItem('tags', index)}
+                          className="px-3 py-2 text-red-600 hover:text-red-800 transition-colors"
+                        >
+                          <X className="w-5 h-5" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => addArrayItem('tags')}
+                    className="inline-flex items-center px-3 py-2 text-sm text-blue-600 hover:text-blue-800 transition-colors"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Tag
+                  </button>
+                </div>
+              </div>
+
+              {/* Description */}
+              <div className="border-t border-gray-200 pt-6">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Description</h3>
+                <textarea
+                  value={formData.description}
+                  onChange={(e) => handleInputChange('description', e.target.value)}
+                  rows={4}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Enter property description..."
+                />
+              </div>
+
+              {/* Property Flags */}
+              <div className="border-t border-gray-200 pt-6">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Property Flags</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {Object.entries(formData.flags).map(([key, value]) => (
+                    <label key={key} className="flex items-center space-x-3">
+                      <input
+                        type="checkbox"
+                        checked={value}
+                        onChange={(e) => handleInputChange('flags', e.target.checked, key)}
+                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                      />
+                      <span className="text-sm text-gray-700 capitalize">
+                        {key.replace(/_/g, ' ')}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Form Actions */}
+              <div className="flex items-center justify-end space-x-3 pt-6 border-t border-gray-200">
+                <button
+                  type="button"
+                  onClick={() => setShowAddModal(false)}
+                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={formLoading}
+                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+                >
+                  {formLoading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2 inline"></div>
+                      Adding...
+                    </>
+                  ) : (
+                    'Add Property'
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

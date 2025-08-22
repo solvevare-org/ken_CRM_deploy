@@ -27,8 +27,11 @@ export interface LoginData {
 }
 
 export interface AuthState {
+  email: string;
+  verificationMethod: "email" | "sms" | null;
   user: User | null;
   token: string | null;
+  user_type: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
@@ -43,6 +46,7 @@ export interface AuthState {
 }
 
 export interface ApiResponse<T = any> {
+  statusCode: number;
   success: boolean;
   message: string;
   data?: T;

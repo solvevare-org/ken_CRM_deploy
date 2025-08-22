@@ -1,55 +1,69 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAppContext } from "@/context/AppContext";
-import { BASE_URL } from "@/config";
+// import { useAppContext } from "@/context/AppContext";
+// import { BASE_URL } from "@/config";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Mail, Lock, Sparkles, Zap } from "lucide-react";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { selectIsLoading, login } from "@/store/slices/authSlice";
+import { CRM_BASE_DOMAIN } from "@/config";
 
 export function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
+  // const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
-  const { dispatch } = useAppContext();
+  const dispatch = useAppDispatch();
+  const loading = useAppSelector(selectIsLoading);
+
+  // Dev: observe loading changes
+  useEffect(() => {
+    console.debug("auth loading changed:", loading);
+  }, [loading]);
+
+  // Navigate to workspace subdomain
+  const handleWorkspaceClick = (workspace: any) => {
+    const slug = workspace.name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, "");
+
+    const protocol = window.location.protocol;
+    const port = window.location.port ? `:${window.location.port}` : "";
+    const targetUrl = `${protocol}//${slug}.${CRM_BASE_DOMAIN}${port}/client`;
+
+    window.location.assign(targetUrl);
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    // setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`${BASE_URL}/api/auth/login`, {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, password }),
-      });
-      if (response.status !== 200) {
+      const result = await dispatch(login({ email, password })).unwrap();
+      if (result.statusCode !== 200) {
         setError("Authentication failed. Please check your credentials.");
-        setLoading(false);
         return;
       }
-      const user = await response.json();
-      localStorage.setItem("token", user.data?.token);
+      console.log(result);
+      const user = result.data;
       dispatch({ type: "SET_USER", payload: user });
-      setLoading(false);
 
       // Route based on user_type
-      if (user.data?.user_type === "Realtor") {
+      if (result.data?.user_type === "Realtor") {
         navigate("/workspace");
-      } else if (user.data?.user_type === "Client") {
-        navigate("/client");
+      } else if (result.data?.user_type === "Client") {
+        handleWorkspaceClick(result.data?.workspace);
       } else {
         // Default fallback
         navigate("/workspace");
       }
     } catch (err) {
       setError("An error occurred. Please try again.");
-      setLoading(false);
+      // setLoading(false);
     }
   };
 
