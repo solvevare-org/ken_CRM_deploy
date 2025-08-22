@@ -85,8 +85,8 @@ const Clients: React.FC = () => {
 
   const generateClientFormLink = async () => {
     const res = await dispatch(generateClientLink()).unwrap();
-    console.log(res.url, "res");
-    setUrl(res.url);
+    console.log(res, "res");
+    setUrl(res);
     setIsModalOpen(true);
   };
 
