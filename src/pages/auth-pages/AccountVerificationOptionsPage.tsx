@@ -1,14 +1,14 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAppDispatch, useAppSelector } from "../store/hooks";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
   setSignupData,
   setVerificationMethod,
-} from "../store/slices/signupSlice";
-import { Button } from "../components/ui/Button";
-import { Input } from "../components/ui/Input";
+} from "@/store/slices/signupSlice";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 import { Mail, Smartphone } from "lucide-react";
-import { BASE_URL } from "../config";
+import { BASE_URL } from "@/config";
 
 export function AccountVerificationOptionsPage() {
   const [method, setMethod] = useState<"email" | "phone" | null>(null);
