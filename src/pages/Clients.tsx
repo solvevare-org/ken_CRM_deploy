@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Search, Plus, Phone, Mail, User, Calendar } from "lucide-react";
 import { UrlModal } from "../components/UrlModel";
 import { useAppDispatch } from "../store/hooks";
