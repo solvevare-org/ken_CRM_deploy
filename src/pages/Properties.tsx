@@ -210,7 +210,7 @@ const Properties: React.FC = () => {
       setFormData(prev => ({
         ...prev,
         [field]: {
-          ...prev[field as keyof typeof prev],
+          ...(prev[field as keyof typeof prev] as object),
           [nestedField]: value
         }
       }));
@@ -226,7 +226,7 @@ const Properties: React.FC = () => {
   const handleArrayChange = (field: string, index: number, value: string) => {
     setFormData(prev => ({
       ...prev,
-      [field]: prev[field as keyof typeof prev].map((item: any, i: number) => 
+      [field]: (prev[field as keyof typeof prev] as string[]).map((item: any, i: number) => 
         i === index ? value : item
       )
     }));
@@ -236,7 +236,7 @@ const Properties: React.FC = () => {
   const addArrayItem = (field: string) => {
     setFormData(prev => ({
       ...prev,
-      [field]: [...prev[field as keyof typeof prev], '']
+      [field]: [...(prev[field as keyof typeof prev] as string[]), '']
     }));
   };
 
@@ -244,7 +244,7 @@ const Properties: React.FC = () => {
   const removeArrayItem = (field: string, index: number) => {
     setFormData(prev => ({
       ...prev,
-      [field]: prev[field as keyof typeof prev].filter((_: any, i: number) => i !== index)
+      [field]: (prev[field as keyof typeof prev] as string[]).filter((_: any, i: number) => i !== index)
     }));
   };
 
