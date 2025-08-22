@@ -1,15 +1,14 @@
-
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAppContext } from '../../context/AppContext';
-import { Button } from '../../components/ui/Button';
-import { BASE_URL, CRM_BASE_DOMAIN } from '../../config';
-import { 
-  Plus, 
-  Settings, 
-  LogOut, 
-  Building2, 
-  Users, 
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAppContext } from "../../context/AppContext";
+import { Button } from "../../components/ui/Button";
+import { BASE_URL, CRM_BASE_DOMAIN } from "../../config";
+import {
+  Plus,
+  Settings,
+  LogOut,
+  Building2,
+  Users,
   Bell,
   Search,
   Menu,
@@ -17,6 +16,8 @@ import {
   X,
   Calendar,
 } from "lucide-react";
+import { useAppDispatch } from "@/store/hooks";
+import { getWorkspaces } from "@/store/slices/workspaceSlice";
 
 export function WorkspacePage() {
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -28,7 +29,8 @@ export function WorkspacePage() {
   const [pendingInvites, setPendingInvites] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
-  const { state, dispatch } = useAppContext();
+  const { state } = useAppContext();
+  const dispatch = useAppDispatch();
 
   const handleLogout = () => {
     dispatch({ type: "LOGOUT" });
@@ -39,18 +41,10 @@ export function WorkspacePage() {
   useEffect(() => {
     const fetchWorkspaces = async () => {
       try {
-        const response = await fetch(`${BASE_URL}/api/workspaces/`, {
-          method: "GET",
-          credentials: "include",
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-            "Content-Type": "application/json",
-          },
-        });
-
-        if (response.ok) {
-          const result = await response.json();
-          const workspaces = result.data || [];
+        const response = await dispatch(getWorkspaces()).unwrap();
+        console.log(response, "response");
+        if (response.success === true) {
+          const workspaces = response.data || [];
 
           // Separate workspaces by type and invitation status
           const personal = workspaces.filter(
