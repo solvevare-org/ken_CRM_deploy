@@ -1,61 +1,107 @@
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Search, Plus, Phone, Mail, User, Calendar } from "lucide-react";
 import { UrlModal } from "../components/UrlModel";
-import { useAppDispatch } from "../store/hooks";
-import { generateClientLink } from "../store/slices/realtorSlice";
+import AddClientModal from "../components/AddClientModal";
+import { BASE_URL } from "../config";
+
+interface Client {
+  _id: string;
+  id?: string; // For backward compatibility
+  name: string;
+  email: string;
+  phone: string;
+  type: "buyer" | "seller" | "both";
+  status: "active" | "potential" | "closed";
+  lastContact: Date;
+  totalValue: number;
+  properties: string[];
+  createdAt: string;
+  user?: {
+    name: string;
+    email: string;
+    phone: string;
+  };
+}
 
 const Clients: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [url, setUrl] = useState("");
-  const dispatch = useAppDispatch();
-  const clients = [
-    {
-      id: "1",
-      name: "Michael Chen",
-      email: "michael.chen@email.com",
-      phone: "(555) 123-4567",
-      type: "buyer",
-      status: "active",
-      lastContact: new Date("2024-01-15"),
-      totalValue: 485000,
-      properties: ["Modern Downtown Condo"],
-    },
-    {
-      id: "2",
-      name: "Emma Wilson",
-      email: "emma.wilson@email.com",
-      phone: "(555) 987-6543",
-      type: "buyer",
-      status: "potential",
-      lastContact: new Date("2024-01-20"),
-      totalValue: 0,
-      properties: [],
-    },
-    {
-      id: "3",
-      name: "Robert Smith",
-      email: "robert.smith@email.com",
-      phone: "(555) 456-7890",
-      type: "seller",
-      status: "active",
-      lastContact: new Date("2024-01-18"),
-      totalValue: 750000,
-      properties: ["Family Home with Garden"],
-    },
-    {
-      id: "4",
-      name: "Sarah Johnson",
-      email: "sarah.johnson@email.com",
-      phone: "(555) 321-0987",
-      type: "both",
-      status: "active",
-      lastContact: new Date("2024-01-22"),
-      totalValue: 1200000,
-      properties: ["Luxury Waterfront Villa", "Downtown Office Space"],
-    },
-  ];
+  const [isAddClientModalOpen, setIsAddClientModalOpen] = useState(false);
+  const [url] = useState("");
+  const [clients, setClients] = useState<Client[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch clients from API
+  const fetchClients = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem("token");
+      
+      console.log("Fetching clients from:", `${BASE_URL}/api/clients`);
+      console.log("Token:", token ? "exists" : "missing");
+      console.log("Current origin:", window.location.origin);
+      console.log("Current hostname:", window.location.hostname);
+      
+      const response = await fetch(`${BASE_URL}/api/clients`, {
+        method: "GET",
+        credentials: "include",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          "Origin": window.location.origin, // Add origin header for workspace detection
+        },
+      });
+
+      console.log("Response status:", response.status);
+      console.log("Response ok:", response.ok);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.log("Error response:", errorText);
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      }
+
+      const result = await response.json();
+      console.log("API result:", result);
+      
+      if (result.success && result.data) {
+        // Transform the data to match our interface
+        const transformedClients = result.data.map((client: any) => ({
+          _id: client._id,
+          id: client._id, // For backward compatibility
+          name: client.first_name && client.last_name 
+            ? `${client.first_name} ${client.last_name}`.trim()
+            : client.first_name || client.last_name || "Unknown",
+          email: client.email || "",
+          phone: client.phone || "",
+          type: "buyer", // Default since Auth model doesn't have client type
+          status: "potential", // Default since Auth model doesn't have client status
+          lastContact: new Date(client.updatedAt || client.createdAt),
+          totalValue: 0, // Default since Auth model doesn't have this
+          properties: [], // Default since Auth model doesn't have this
+          createdAt: client.createdAt,
+          user: client // Keep the original data
+        }));
+        
+        setClients(transformedClients);
+      } else {
+        setClients([]);
+      }
+    } catch (error) {
+      console.error("Error fetching clients:", error);
+      setError(error instanceof Error ? error.message : "Failed to fetch clients");
+      setClients([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch clients when component mounts
+  useEffect(() => {
+    fetchClients();
+  }, []);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -83,13 +129,6 @@ const Clients: React.FC = () => {
     }
   };
 
-  const generateClientFormLink = async () => {
-    const res = await dispatch(generateClientLink()).unwrap();
-    console.log(res, "res");
-    setUrl(res);
-    setIsModalOpen(true);
-  };
-
   const filteredClients = clients.filter((client) => {
     const matchesSearch =
       client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -111,7 +150,7 @@ const Clients: React.FC = () => {
           </p>
         </div>
         <button
-          onClick={generateClientFormLink}
+          onClick={() => setIsAddClientModalOpen(true)}
           className="mt-4 sm:mt-0 inline-flex items-center px-3 lg:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm lg:text-base"
         >
           <Plus className="w-4 h-4 mr-2" />
@@ -148,8 +187,30 @@ const Clients: React.FC = () => {
         </div>
       </div>
 
-      {/* Clients List */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
+      {/* Error State */}
+      {error && (
+        <div className="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+          <p>Error loading clients: {error}</p>
+          <button 
+            onClick={fetchClients} 
+            className="mt-2 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
+      {/* Loading State */}
+      {loading ? (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
+          <div className="flex justify-center items-center h-64">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            <span className="ml-4 text-gray-600">Loading clients...</span>
+          </div>
+        </div>
+      ) : (
+        /* Clients List */
+        <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
         {/* Mobile Cards View */}
         <div className="block lg:hidden">
           {filteredClients.map((client) => (
@@ -303,9 +364,10 @@ const Clients: React.FC = () => {
             </tbody>
           </table>
         </div>
-      </div>
+        </div>
+      )}
 
-      {filteredClients.length === 0 && (
+      {filteredClients.length === 0 && !loading && (
         <div className="text-center py-12">
           <div className="text-gray-500 mb-4">
             <User className="w-12 h-12 mx-auto" />
@@ -318,6 +380,15 @@ const Clients: React.FC = () => {
           </p>
         </div>
       )}
+
+      <AddClientModal
+        isOpen={isAddClientModalOpen}
+        onClose={() => setIsAddClientModalOpen(false)}
+        onInviteSuccess={() => {
+          setIsAddClientModalOpen(false);
+          fetchClients(); // Refresh the clients list
+        }}
+      />
 
       <UrlModal
         isOpen={isModalOpen}

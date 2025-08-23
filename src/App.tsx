@@ -35,10 +35,14 @@ import { WorkspacePage } from "@/pages/workspace-pages/WorkspacePage";
 import { WorkspaceViewPage } from "@/pages/workspace-pages/WorkspaceViewPage";
 import { WorkspaceEditPage } from "@/pages/workspace-pages/WorkspaceEditPage";
 
+// Components
+import { AuthRedirect } from "@/components/AuthRedirect";
+
 // Pages - Lead pages
 import Leads from "@/pages/lead-pages/Leads";
 import LeadForm from "@/pages/lead-pages/LeadForm";
 import LeadFormTemplating from "@/pages/lead-pages/LeadFormTemplating";
+import PublicLeadForm from "@/pages/PublicLeadForm";
 
 // Pages - Client pages
 import ClientSignUp from "@/pages/client-pages/clientSignUp";
@@ -398,7 +402,9 @@ function App() {
             ) : (
               <>
                 {/* Main domain routes */}
-                <Route path="/" element={<LoginPage />} />
+                <Route path="/" element={<AuthRedirect />} />
+                <Route path="/form/:linkId" element={<PublicLeadForm />} />
+                <Route path="/login" element={<LoginPage />} />
                 <Route path="/signup-options" element={<SignupOptionsPage />} />
                 <Route path="/client-signup/:link" element={<ClientSignUp />} />
                 <Route

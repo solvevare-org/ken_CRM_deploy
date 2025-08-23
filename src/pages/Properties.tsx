@@ -180,6 +180,7 @@ const Properties: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  
   };
 
   // Initial fetch

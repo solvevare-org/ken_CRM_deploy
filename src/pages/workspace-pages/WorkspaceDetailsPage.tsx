@@ -4,7 +4,7 @@ import { useAppContext } from '../../context/AppContext';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Upload, Building2, Image as ImageIcon, Settings, FileText, AlertCircle, CheckCircle, X } from 'lucide-react';
-import { CRM_BASE_DOMAIN, BASE_URL } from '../../config';
+import { BASE_URL, CRM_BASE_DOMAIN } from '../../config';
 
 export function WorkspaceDetailsPage() {
   const navigate = useNavigate();
@@ -17,11 +17,27 @@ export function WorkspaceDetailsPage() {
   const [signatureFiles, setSignatureFiles] = useState<File[]>([]);
   const [disabledFeatures, setDisabledFeatures] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [createdWorkspace, setCreatedWorkspace] = useState<any>(null);
+  const [notification, setNotification] = useState<{
+    show: boolean;
+    message: string;
+    type: 'error' | 'success';
+  }>({ show: false, message: '', type: 'error' });
   const [nameValidation, setNameValidation] = useState<{
     isValid: boolean;
     isChecking: boolean;
     message: string;
   }>({ isValid: true, isChecking: false, message: "" });
+
+  // Function to show notifications
+  const showNotification = (message: string, type: 'error' | 'success') => {
+    setNotification({ show: true, message, type });
+    // Auto-hide after 5 seconds
+    setTimeout(() => {
+      setNotification({ show: false, message: '', type: 'error' });
+    }, 5000);
+  };
 
   // Available features that can be disabled
   const availableFeatures = [
@@ -180,7 +196,7 @@ export function WorkspaceDetailsPage() {
     );
   };
 
-  const handleContinue = (e: React.FormEvent) => {
+  const handleContinue = async (e: React.FormEvent) => {
     e.preventDefault();
 
     // Validate form before submission
@@ -190,45 +206,71 @@ export function WorkspaceDetailsPage() {
 
     setLoading(true);
 
-    setTimeout(() => {
-      const newWorkspace = {
-        id: Date.now().toString(),
-        name: workspaceName || "My Workspace",
-        description: "",
-        type: "main" as const,
-        createdAt: new Date().toISOString(),
-        memberCount: 1, // Default to 1 member (the creator)
-        activeListings: 0,
-        totalDeals: 0,
-        monthlyRevenue: 0,
-        image: workspaceImage || undefined,
-        primaryColor,
-        secondaryColor,
-        signatureFiles: signatureFiles.map((file) => file.name),
-        disabledFeatures,
-        isWhitelabel: true,
+    try {
+      // Prepare workspace data for API
+      const workspaceData = {
+        name: workspaceName.trim(),
+        type: "organization", // Set as organization workspace
+        ...(workspaceImage || signatureFiles.length > 0 || disabledFeatures.length > 0 ? {
+          white_label_configurations: {
+            ...(workspaceImage && { logo_path: workspaceImage }),
+            ...(signatureFiles.length > 0 && { signature_paths: signatureFiles.map((file) => file.name) }),
+            ...(disabledFeatures.length > 0 && { features_disabled: disabledFeatures }),
+          }
+        } : {}),
       };
 
-      dispatch({ type: "ADD_WORKSPACE", payload: newWorkspace });
-      setLoading(false);
+      const response = await fetch(`${BASE_URL}/api/workspaces`, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(workspaceData),
+      });
 
-      // Redirect to tenant subdomain in dev to simulate wildcard DNS
-      const slug =
-        workspaceName
-          .trim()
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/g, "-")
-          .replace(/(^-|-$)/g, "") || "workspace";
-      const protocol = window.location.protocol || "http:";
-      const port = window.location.port ? `:${window.location.port}` : "";
-      const targetUrl = `${protocol}//${slug}.${CRM_BASE_DOMAIN}${port}/`;
+      const result = await response.json();
 
-      if (window.location.hostname !== `${slug}.${CRM_BASE_DOMAIN}`) {
-        window.location.assign(targetUrl);
-      } else {
-        navigate("/workspace-created");
+      if (!response.ok) {
+        throw new Error(result.message || "Failed to create workspace");
       }
-    }, 1500);
+      
+      if (result.success && result.data) {
+        // Update local context with new workspace
+        const newWorkspace = {
+          id: result.data._id || result.data.id,
+          name: result.data.name,
+          description: "",
+          type: "main" as const,
+          createdAt: result.data.createdAt || new Date().toISOString(),
+          memberCount: 1,
+          activeListings: 0,
+          totalDeals: 0,
+          monthlyRevenue: 0,
+          image: workspaceImage || undefined,
+          primaryColor,
+          secondaryColor,
+          signatureFiles: signatureFiles.map((file) => file.name),
+          disabledFeatures,
+          isWhitelabel: true,
+        };
+
+        dispatch({ type: "ADD_WORKSPACE", payload: newWorkspace });
+        setCreatedWorkspace(result.data);
+        setLoading(false);
+        setShowSuccessModal(true);
+      } else {
+        throw new Error("Invalid response from server");
+      }
+    } catch (error) {
+      console.error("Error creating workspace:", error);
+      setLoading(false);
+      showNotification(
+        error instanceof Error ? error.message : "Failed to create workspace. Please try again.",
+        'error'
+      );
+    }
   };
 
   return (
@@ -323,7 +365,7 @@ export function WorkspaceDetailsPage() {
             {/* Workspace Image */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-4">
-                Workspace Logo
+                Workspace Logo <span className="text-gray-500 font-normal">(Optional)</span>
               </label>
               <div className="flex items-center space-x-6">
                 <div className="w-20 h-20 bg-gray-100 rounded-xl flex items-center justify-center border-2 border-dashed border-gray-300">
@@ -351,7 +393,7 @@ export function WorkspaceDetailsPage() {
                     </div>
                   </label>
                   <p className="text-xs text-gray-500 mt-1">
-                    PNG, JPG up to 2MB
+                    PNG, JPG up to 2MB (Optional)
                   </p>
                 </div>
               </div>
@@ -361,7 +403,7 @@ export function WorkspaceDetailsPage() {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-4">
                 <FileText className="w-4 h-4 inline mr-2" />
-                Signature Files
+                Signature Files <span className="text-gray-500 font-normal">(Optional)</span>
               </label>
               <div className="space-y-4">
                 <div>
@@ -381,7 +423,7 @@ export function WorkspaceDetailsPage() {
                     </div>
                   </label>
                   <p className="text-xs text-gray-500 mt-1">
-                    PNG, JPG, PDF files up to 5MB each
+                    PNG, JPG, PDF files up to 5MB each (Optional)
                   </p>
                 </div>
 
@@ -490,9 +532,155 @@ export function WorkspaceDetailsPage() {
                 !workspaceName.trim()
               }
             >
-              Create Organization Workspace
+              {loading ? "Creating Workspace..." : "Create Organization Workspace"}
             </Button>
           </form>
+
+          {/* Success Modal */}
+          {showSuccessModal && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+              <div className="bg-white rounded-xl p-8 shadow-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                <div className="text-center mb-6">
+                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <CheckCircle className="w-8 h-8 text-green-600" />
+                  </div>
+                  <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                    Workspace Created Successfully!
+                  </h2>
+                  <p className="text-gray-600 mb-4">
+                    Your organization workspace has been created and is ready to use.
+                  </p>
+                </div>
+
+                {/* Organization Details */}
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-xl border border-blue-200 mb-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                    <Building2 className="w-5 h-5 mr-2 text-blue-600" />
+                    Organization Details
+                  </h3>
+                  <div className="grid md:grid-cols-2 gap-4 text-sm">
+                    <div className="bg-white p-3 rounded-lg">
+                      <div className="text-gray-600 mb-1">Workspace Name</div>
+                      <div className="font-medium text-gray-900">
+                        {createdWorkspace?.name || workspaceName}
+                      </div>
+                    </div>
+                    <div className="bg-white p-3 rounded-lg">
+                      <div className="text-gray-600 mb-1">Type</div>
+                      <div className="font-medium text-gray-900 flex items-center">
+                        <Building2 className="w-4 h-4 mr-1 text-blue-600" />
+                        Organization
+                      </div>
+                    </div>
+                    <div className="bg-white p-3 rounded-lg">
+                      <div className="text-gray-600 mb-1">Signature Files</div>
+                      <div className="font-medium text-gray-900 flex items-center">
+                        <FileText className="w-4 h-4 mr-1" />
+                        {signatureFiles.length} files uploaded
+                      </div>
+                    </div>
+                    <div className="bg-white p-3 rounded-lg">
+                      <div className="text-gray-600 mb-1">Logo</div>
+                      <div className="font-medium text-gray-900 flex items-center">
+                        <ImageIcon className="w-4 h-4 mr-1" />
+                        {workspaceImage ? 'Uploaded' : 'Not uploaded'}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Features Configuration */}
+                  <div className="mt-4">
+                    <div className="bg-white p-3 rounded-lg">
+                      <div className="text-gray-600 mb-2">Features Configuration</div>
+                      {disabledFeatures.length > 0 ? (
+                        <div>
+                          <div className="font-medium text-red-800 mb-2">
+                            {disabledFeatures.length} feature(s) disabled:
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            {disabledFeatures.map((featureId) => {
+                              const feature = availableFeatures.find(
+                                (f) => f.id === featureId
+                              );
+                              return (
+                                <span
+                                  key={featureId}
+                                  className="px-2 py-1 text-xs bg-red-100 text-red-800 rounded-full"
+                                >
+                                  {feature?.label}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="font-medium text-green-800">
+                          All features enabled
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Workspace URL */}
+                  <div className="mt-4">
+                    <div className="bg-white p-3 rounded-lg">
+                      <div className="text-gray-600 mb-1">Workspace URL</div>
+                      <div className="font-medium text-blue-600 text-sm break-all">
+                        {`${window.location.protocol}//${(createdWorkspace?.name || workspaceName)
+                          .trim()
+                          .toLowerCase()
+                          .replace(/[^a-z0-9]+/g, "-")
+                          .replace(/(^-|-$)/g, "")}.${CRM_BASE_DOMAIN}${window.location.port ? `:${window.location.port}` : ''}`}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="space-y-3">
+                  <Button 
+                    className="w-full"
+                    onClick={() => {
+                      // Open workspace in same window with token transfer
+                      const slug = (createdWorkspace?.name || workspaceName)
+                        .trim()
+                        .toLowerCase()
+                        .replace(/[^a-z0-9]+/g, "-")
+                        .replace(/(^-|-$)/g, "");
+                      
+                      const token = localStorage.getItem("token");
+                      const protocol = window.location.protocol;
+                      const port = window.location.port ? `:${window.location.port}` : "";
+                      
+                      // Create workspace URL with token as query parameter for auto-login
+                      const workspaceUrl = `${protocol}//${slug}.${CRM_BASE_DOMAIN}${port}/?token=${encodeURIComponent(token || '')}&redirect=dashboard`;
+                      
+                      // Navigate to workspace subdomain
+                      window.location.href = workspaceUrl;
+                    }}
+                  >
+                    Open Workspace
+                  </Button>
+                  <Button 
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => {
+                      // Navigate to workspace dashboard in current domain
+                      navigate('/workspace');
+                    }}
+                  >
+                    Go to Dashboard
+                  </Button>
+                  <button
+                    onClick={() => setShowSuccessModal(false)}
+                    className="w-full text-gray-500 hover:text-gray-700 font-medium transition-colors"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Back Button */}
           <div className="text-center mt-6">
@@ -504,6 +692,50 @@ export function WorkspaceDetailsPage() {
             </button>
           </div>
         </div>
+
+        {/* Toast Notification */}
+        {notification.show && (
+          <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-right duration-300">
+            <div className={`
+              max-w-md w-full bg-white rounded-lg shadow-lg border-l-4 p-4
+              ${notification.type === 'error' ? 'border-red-500' : 'border-green-500'}
+            `}>
+              <div className="flex items-start">
+                <div className="flex-shrink-0">
+                  {notification.type === 'error' ? (
+                    <AlertCircle className="w-5 h-5 text-red-600" />
+                  ) : (
+                    <CheckCircle className="w-5 h-5 text-green-600" />
+                  )}
+                </div>
+                <div className="ml-3 flex-1">
+                  <p className={`text-sm font-medium ${
+                    notification.type === 'error' ? 'text-red-800' : 'text-green-800'
+                  }`}>
+                    {notification.type === 'error' ? 'Error' : 'Success'}
+                  </p>
+                  <p className={`mt-1 text-sm ${
+                    notification.type === 'error' ? 'text-red-700' : 'text-green-700'
+                  }`}>
+                    {notification.message}
+                  </p>
+                </div>
+                <div className="flex-shrink-0 ml-4">
+                  <button
+                    onClick={() => setNotification({ show: false, message: '', type: 'error' })}
+                    className={`rounded-md p-1.5 inline-flex items-center justify-center ${
+                      notification.type === 'error' 
+                        ? 'text-red-400 hover:text-red-600 focus:ring-red-600' 
+                        : 'text-green-400 hover:text-green-600 focus:ring-green-600'
+                    } hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2`}
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
