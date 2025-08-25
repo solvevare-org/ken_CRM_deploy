@@ -93,6 +93,39 @@ const Properties: React.FC = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [formLoading, setFormLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [showFilters, setShowFilters] = useState(false);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
+  
+  // Advanced filters state
+  const [filters, setFilters] = useState({
+    budget: {
+      min: '',
+      max: ''
+    },
+    size: {
+      min: '',
+      max: ''
+    },
+    bedrooms: {
+      min: '',
+      max: ''
+    },
+    bathrooms: {
+      min: '',
+      max: ''
+    },
+    yearBuilt: {
+      min: '',
+      max: ''
+    },
+    propertyType: [] as string[],
+    location: {
+      city: '',
+      state: '',
+      postalCode: ''
+    }
+  });
 
   // Form state
   const [formData, setFormData] = useState({
@@ -203,6 +236,57 @@ const Properties: React.FC = () => {
       currentPage: 1
     });
     fetchProperties();
+  };
+
+  // Handle filter changes
+  const handleFilterChange = (filterType: string, field: string, value: any) => {
+    setFilters(prev => ({
+      ...prev,
+      [filterType]: {
+        ...prev[filterType as keyof typeof prev],
+        [field]: value
+      }
+    }));
+  };
+
+  // Handle property type filter (multi-select)
+  const handlePropertyTypeFilter = (propertyType: string) => {
+    setFilters(prev => ({
+      ...prev,
+      propertyType: prev.propertyType.includes(propertyType)
+        ? prev.propertyType.filter(type => type !== propertyType)
+        : [...prev.propertyType, propertyType]
+    }));
+  };
+
+  // Clear all filters
+  const clearFilters = () => {
+    setFilters({
+      budget: { min: '', max: '' },
+      size: { min: '', max: '' },
+      bedrooms: { min: '', max: '' },
+      bathrooms: { min: '', max: '' },
+      yearBuilt: { min: '', max: '' },
+      propertyType: [],
+      location: { city: '', state: '', postalCode: '' }
+    });
+  };
+
+  // Apply filters
+  const applyFilters = () => {
+    setPagination({
+      endCursor: '',
+      hasNextPage: false,
+      currentPage: 1
+    });
+    setShowFilters(false);
+    fetchProperties();
+  };
+
+  // Handle view details
+  const handleViewDetails = (property: Property) => {
+    setSelectedProperty(property);
+    setShowDetailsModal(true);
   };
 
   // Handle form input changes
@@ -367,10 +451,43 @@ const Properties: React.FC = () => {
   };
 
   const filteredProperties = properties.filter(property => {
+    // Basic search and status filter
     const matchesSearch = property.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          property.fullAddress.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || property.status.toLowerCase() === statusFilter.toLowerCase();
-    return matchesSearch && matchesStatus;
+    
+    // Budget filter
+    const matchesBudget = (!filters.budget.min || property.price >= parseInt(filters.budget.min)) &&
+                         (!filters.budget.max || property.price <= parseInt(filters.budget.max));
+    
+    // Size filter (square footage)
+    const matchesSize = (!filters.size.min || (property.details?.sqft && property.details.sqft >= parseInt(filters.size.min))) &&
+                       (!filters.size.max || (property.details?.sqft && property.details.sqft <= parseInt(filters.size.max)));
+    
+    // Bedrooms filter
+    const matchesBedrooms = (!filters.bedrooms.min || (property.details?.beds && property.details.beds >= parseInt(filters.bedrooms.min))) &&
+                           (!filters.bedrooms.max || (property.details?.beds && property.details.beds <= parseInt(filters.bedrooms.max)));
+    
+    // Bathrooms filter
+    const matchesBathrooms = (!filters.bathrooms.min || (property.details?.baths && property.details.baths >= parseInt(filters.bathrooms.min))) &&
+                            (!filters.bathrooms.max || (property.details?.baths && property.details.baths <= parseInt(filters.bathrooms.max)));
+    
+    // Year built filter
+    const matchesYearBuilt = (!filters.yearBuilt.min || (property.details?.year_built && property.details.year_built >= parseInt(filters.yearBuilt.min))) &&
+                            (!filters.yearBuilt.max || (property.details?.year_built && property.details.year_built <= parseInt(filters.yearBuilt.max)));
+    
+    // Property type filter
+    const matchesPropertyType = filters.propertyType.length === 0 || 
+                               filters.propertyType.includes(property.property_type);
+    
+    // Location filter
+    const matchesLocation = (!filters.location.city || property.address.city.toLowerCase().includes(filters.location.city.toLowerCase())) &&
+                           (!filters.location.state || property.address.state.toLowerCase().includes(filters.location.state.toLowerCase())) &&
+                           (!filters.location.postalCode || property.address.postal_code.includes(filters.location.postalCode));
+    
+    return matchesSearch && matchesStatus && matchesBudget && matchesSize && 
+           matchesBedrooms && matchesBathrooms && matchesYearBuilt && 
+           matchesPropertyType && matchesLocation;
   });
 
   if (loading && properties.length === 0) {
@@ -453,13 +570,205 @@ const Properties: React.FC = () => {
           </select>
 
           <button 
-            onClick={handleSearch}
+            onClick={() => setShowFilters(!showFilters)}
             className="inline-flex items-center px-3 lg:px-4 py-2 text-sm lg:text-base border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
           >
             <Filter className="w-4 h-4 mr-2" />
-            Apply Filters
+            {showFilters ? 'Hide Filters' : 'More Filters'}
+          </button>
+
+          <button 
+            onClick={handleSearch}
+            className="inline-flex items-center px-3 lg:px-4 py-2 text-sm lg:text-base bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <Search className="w-4 h-4 mr-2" />
+            Search
           </button>
         </div>
+
+        {/* Advanced Filters */}
+        {showFilters && (
+          <div className="mt-6 pt-6 border-t border-gray-200">
+            <div className="space-y-6">
+              {/* Budget Filter */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Budget Range</label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <input
+                    type="number"
+                    placeholder="Min"
+                    value={filters.budget.min}
+                    onChange={(e) => handleFilterChange('budget', 'min', e.target.value)}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <input
+                    type="number"
+                    placeholder="Max"
+                    value={filters.budget.max}
+                    onChange={(e) => handleFilterChange('budget', 'max', e.target.value)}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+
+              {/* Size Filter */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Size Range (sq ft)</label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <input
+                    type="number"
+                    placeholder="Min"
+                    value={filters.size.min}
+                    onChange={(e) => handleFilterChange('size', 'min', e.target.value)}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <input
+                    type="number"
+                    placeholder="Max"
+                    value={filters.size.max}
+                    onChange={(e) => handleFilterChange('size', 'max', e.target.value)}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+
+              {/* Bedrooms Filter */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Bedrooms</label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <input
+                    type="number"
+                    placeholder="Min"
+                    value={filters.bedrooms.min}
+                    onChange={(e) => handleFilterChange('bedrooms', 'min', e.target.value)}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <input
+                    type="number"
+                    placeholder="Max"
+                    value={filters.bedrooms.max}
+                    onChange={(e) => handleFilterChange('bedrooms', 'max', e.target.value)}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+
+              {/* Bathrooms Filter */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Bathrooms</label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <input
+                    type="number"
+                    placeholder="Min"
+                    value={filters.bathrooms.min}
+                    onChange={(e) => handleFilterChange('bathrooms', 'min', e.target.value)}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <input
+                    type="number"
+                    placeholder="Max"
+                    value={filters.bathrooms.max}
+                    onChange={(e) => handleFilterChange('bathrooms', 'max', e.target.value)}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+
+              {/* Year Built Filter */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Year Built</label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <input
+                    type="number"
+                    placeholder="Min"
+                    value={filters.yearBuilt.min}
+                    onChange={(e) => handleFilterChange('yearBuilt', 'min', e.target.value)}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <input
+                    type="number"
+                    placeholder="Max"
+                    value={filters.yearBuilt.max}
+                    onChange={(e) => handleFilterChange('yearBuilt', 'max', e.target.value)}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+
+              {/* Property Type Filter */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Property Type</label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                  {['single_family', 'condo', 'townhouse', 'multi_family', 'land'].map((type) => (
+                    <label key={type} className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        checked={filters.propertyType.includes(type)}
+                        onChange={() => handlePropertyTypeFilter(type)}
+                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                      />
+                      <span className="text-sm text-gray-700 capitalize">
+                        {type.replace('_', ' ')}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Location Filter */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Location</label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                  <input
+                    type="text"
+                    placeholder="City"
+                    value={filters.location.city}
+                    onChange={(e) => handleFilterChange('location', 'city', e.target.value)}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <input
+                    type="text"
+                    placeholder="State"
+                    value={filters.location.state}
+                    onChange={(e) => handleFilterChange('location', 'state', e.target.value)}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Postal Code"
+                    value={filters.location.postalCode}
+                    onChange={(e) => handleFilterChange('location', 'postalCode', e.target.value)}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Filter Actions */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mt-6 pt-6 border-t border-gray-200 space-y-3 sm:space-y-0">
+              <button
+                onClick={clearFilters}
+                className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 transition-colors"
+              >
+                Clear All Filters
+              </button>
+              <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3 w-full sm:w-auto">
+                <button
+                  onClick={() => setShowFilters(false)}
+                  className="w-full sm:w-auto px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={applyFilters}
+                  className="w-full sm:w-auto px-6 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Apply Filters
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Properties Grid */}
@@ -532,7 +841,10 @@ const Properties: React.FC = () => {
               </div>
 
               <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
-                <button className="flex-1 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium">
+                <button 
+                  onClick={() => handleViewDetails(property)}
+                  className="flex-1 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                >
                   View Details
                 </button>
                 <button className="flex-1 sm:flex-none px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium">
@@ -1023,6 +1335,226 @@ const Properties: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Property Details Modal */}
+      {showDetailsModal && selectedProperty && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <h2 className="text-xl font-semibold text-gray-900">Property Details</h2>
+              <button
+                onClick={() => setShowDetailsModal(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-6">
+              {/* Property Image */}
+              <div className="relative">
+                <img
+                  src={selectedProperty.media?.primary_photo || 'https://images.pexels.com/photos/1396122/pexels-photo-1396122.jpeg?auto=compress&cs=tinysrgb&w=600'}
+                  alt={selectedProperty.name}
+                  className="w-full h-64 object-cover rounded-lg"
+                />
+                <div className="absolute top-4 right-4">
+                  <span className={`px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(selectedProperty.status)}`}>
+                    {selectedProperty.status}
+                  </span>
+                </div>
+                {selectedProperty.flags?.is_new_listing && (
+                  <div className="absolute top-4 left-4">
+                    <span className="px-2 py-1 bg-red-500 text-white text-sm font-medium rounded-full">
+                      New
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Basic Information */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">Basic Information</h3>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Property Name</label>
+                      <p className="text-sm text-gray-900">{selectedProperty.name}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Price</label>
+                      <p className="text-lg font-bold text-gray-900">${selectedProperty.price.toLocaleString()}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Property Type</label>
+                      <p className="text-sm text-gray-900 capitalize">{selectedProperty.property_type.replace('_', ' ')}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Source Type</label>
+                      <p className="text-sm text-gray-900 uppercase">{selectedProperty.source_type}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Listed Date</label>
+                      <p className="text-sm text-gray-900">{new Date(selectedProperty.listed_date).toLocaleDateString()}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Created</label>
+                      <p className="text-sm text-gray-900">{new Date(selectedProperty.createdAt).toLocaleDateString()}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">Address</h3>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Full Address</label>
+                      <p className="text-sm text-gray-900">{selectedProperty.fullAddress}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Street</label>
+                      <p className="text-sm text-gray-900">{selectedProperty.address.street}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">City</label>
+                      <p className="text-sm text-gray-900">{selectedProperty.address.city}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">State</label>
+                      <p className="text-sm text-gray-900">{selectedProperty.address.state}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Postal Code</label>
+                      <p className="text-sm text-gray-900">{selectedProperty.address.postal_code}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Country</label>
+                      <p className="text-sm text-gray-900">{selectedProperty.address.country}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Property Details */}
+              {selectedProperty.details && (
+                <div className="border-t border-gray-200 pt-6">
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">Property Details</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Bedrooms</label>
+                      <p className="text-sm text-gray-900">{selectedProperty.details.beds || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Bathrooms</label>
+                      <p className="text-sm text-gray-900">{selectedProperty.details.baths || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Full Bathrooms</label>
+                      <p className="text-sm text-gray-900">{selectedProperty.details.baths_full || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Half Bathrooms</label>
+                      <p className="text-sm text-gray-900">{selectedProperty.details.baths_half || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Square Feet</label>
+                      <p className="text-sm text-gray-900">{selectedProperty.details.sqft ? `${selectedProperty.details.sqft.toLocaleString()} sq ft` : 'N/A'}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Lot Square Feet</label>
+                      <p className="text-sm text-gray-900">{selectedProperty.details.lot_sqft ? `${selectedProperty.details.lot_sqft.toLocaleString()} sq ft` : 'N/A'}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Year Built</label>
+                      <p className="text-sm text-gray-900">{selectedProperty.details.year_built || 'N/A'}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Location Coordinates */}
+              {selectedProperty.location && (
+                <div className="border-t border-gray-200 pt-6">
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">Location Coordinates</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Latitude</label>
+                      <p className="text-sm text-gray-900">{selectedProperty.location.latitude}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Longitude</label>
+                      <p className="text-sm text-gray-900">{selectedProperty.location.longitude}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Media Information */}
+              {selectedProperty.media && (
+                <div className="border-t border-gray-200 pt-6">
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">Media</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Primary Photo</label>
+                      <p className="text-sm text-gray-900 break-all">{selectedProperty.media.primary_photo || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Photo Count</label>
+                      <p className="text-sm text-gray-900">{selectedProperty.media.photo_count}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Property Flags */}
+              {selectedProperty.flags && (
+                <div className="border-t border-gray-200 pt-6">
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">Property Flags</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {Object.entries(selectedProperty.flags).map(([key, value]) => (
+                      <div key={key} className="flex items-center space-x-3">
+                        <div className={`w-3 h-3 rounded-full ${value ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                        <span className="text-sm text-gray-700 capitalize">
+                          {key.replace(/_/g, ' ')}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Statistics */}
+              <div className="border-t border-gray-200 pt-6">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Statistics</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">View Count</label>
+                    <p className="text-sm text-gray-900">{selectedProperty.view_count}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Inquiry Count</label>
+                    <p className="text-sm text-gray-900">{selectedProperty.inquiry_count}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Bookmark Count</label>
+                    <p className="text-sm text-gray-900">{selectedProperty.bookmark_count}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Modal Actions */}
+              <div className="flex items-center justify-end space-x-3 pt-6 border-t border-gray-200">
+                <button
+                  onClick={() => setShowDetailsModal(false)}
+                  className="px-6 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
