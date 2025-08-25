@@ -15,7 +15,8 @@ import { setAuthTokenGetter } from "@/utils/api";
 const authPersistConfig = {
   key: "auth",
   storage,
-  whitelist: ["token", "user", "isAuthenticated", "user_type"], // Only persist these fields
+  // Persist user and flags but not the token (token is stored as httpOnly cookie by backend)
+  whitelist: ["user", "isAuthenticated", "user_type"],
 };
 
 const realtorPersistConfig = {

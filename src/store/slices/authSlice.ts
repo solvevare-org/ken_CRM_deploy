@@ -109,6 +109,25 @@ export const logout = createAsyncThunk<void, void, { rejectValue: string }>(
   }
 );
 
+// Get current user (requires auth)
+export const getCurrentUser = createAsyncThunk<
+  ApiResponse<{ auth: any }>,
+  void,
+  { rejectValue: string }
+>("otherAuth/getCurrentUser", async (_, { rejectWithValue }) => {
+  try {
+    const response = await api.get<ApiResponse<{ auth: any }>>(
+      `${BASE_URL}/current-user`
+    );
+    console.log(response, "<=== getCurrentUser");
+    return response.data;
+  } catch (error) {
+    console.log(error, "<=== getCurrentUser");
+    const msg = handleApiError(error);
+    return rejectWithValue(msg);
+  }
+});
+
 // Initial state
 const initialState: AuthState = {
   user: null,
@@ -161,7 +180,6 @@ const authSlice = createSlice({
       state.isAuthenticated = false;
       state.error = null;
       state.signupSuccess = false;
-      localStorage.removeItem("accessToken");
     },
   },
   extraReducers: (builder) => {
@@ -263,6 +281,22 @@ const authSlice = createSlice({
         state.user_type = null;
         state.user = null;
         state.error = action.payload || "Logout failed";
+      });
+
+    // getCurrentUser
+    builder
+      .addCase(getCurrentUser.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(getCurrentUser.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.user = action.payload.data?.auth || null;
+      })
+      .addCase(getCurrentUser.rejected, (state, action) => {
+        state.isLoading = false;
+        state.user = null;
+        state.error = action.payload || "Get current user failed";
       });
   },
 });

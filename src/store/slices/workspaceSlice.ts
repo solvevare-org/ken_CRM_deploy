@@ -46,8 +46,10 @@ export const getWorkspaceByName = createAsyncThunk<
           params: { name: workspaceName },
         }
       );
+      console.log("getWorkspaceByName", response);
       return response.data;
     } catch (error) {
+      console.log("getWorkspaceByName error", error);
       return rejectWithValue(handleApiError(error));
     }
   }
@@ -122,6 +124,7 @@ const initialState: WorkspaceState = {
   workspaces: [],
   currentWorkspace: null,
   selectedWorkspace: null,
+  workspaceType: null,
   workspaceAvailability: {
     name: "",
     exists: false,
@@ -149,6 +152,9 @@ const workspaceSlice = createSlice({
   name: "workspace",
   initialState,
   reducers: {
+    setWorkspaceType: (state, action: PayloadAction<string>) => {
+      state.workspaceType = action.payload;
+    },
     // Clear errors
     clearError: (
       state,
@@ -296,6 +302,7 @@ const workspaceSlice = createSlice({
 
 // Export actions
 export const {
+  setWorkspaceType,
   clearError,
   clearWorkspaceAvailability,
   setCurrentWorkspace,

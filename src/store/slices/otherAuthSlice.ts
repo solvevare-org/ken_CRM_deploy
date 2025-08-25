@@ -135,23 +135,6 @@ export const setupAccount = createAsyncThunk<
   }
 });
 
-// Get current user (requires auth)
-export const getCurrentUser = createAsyncThunk<
-  ApiResponse<{ auth: any }>,
-  void,
-  { rejectValue: string }
->("otherAuth/getCurrentUser", async (_, { rejectWithValue }) => {
-  try {
-    const response = await api.get<ApiResponse<{ auth: any }>>(
-      `${BASE_URL}/current-user`
-    );
-    return response.data;
-  } catch (error) {
-    const msg = handleApiError(error);
-    return rejectWithValue(msg);
-  }
-});
-
 // Check if user exists by email
 export const checkUserExists = createAsyncThunk<
   ApiResponse<{ exists: boolean }>,
@@ -358,22 +341,6 @@ const otherAuthSlice = createSlice({
       .addCase(setupAccount.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload || "Account setup failed";
-      });
-
-    // getCurrentUser
-    builder
-      .addCase(getCurrentUser.pending, (state) => {
-        state.isLoading = true;
-        state.error = null;
-      })
-      .addCase(getCurrentUser.fulfilled, (state, action) => {
-        state.isLoading = false;
-        state.currentUser = action.payload.data?.auth || null;
-      })
-      .addCase(getCurrentUser.rejected, (state, action) => {
-        state.isLoading = false;
-        state.currentUser = null;
-        state.error = action.payload || "Get current user failed";
       });
 
     // checkUserExists

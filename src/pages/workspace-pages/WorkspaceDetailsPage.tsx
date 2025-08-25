@@ -14,10 +14,14 @@ import {
   X,
 } from "lucide-react";
 import { BASE_URL, CRM_BASE_DOMAIN } from "../../config";
+import { useAppSelector } from "@/store/hooks";
 
 export function WorkspaceDetailsPage() {
   const navigate = useNavigate();
   const { dispatch } = useAppContext();
+  const { workspaceType } = useAppSelector((state) => state.workspace);
+  const name = workspaceType === "personal" ? "Personal" : "Organization";
+  console.log(workspaceType);
 
   const [workspaceImage, setWorkspaceImage] = useState<string | null>(null);
   const [uploadedImagePath, setUploadedImagePath] = useState<string | null>(
@@ -252,7 +256,7 @@ export function WorkspaceDetailsPage() {
       // Prepare workspace data for API
       const workspaceData = {
         name: workspaceName.trim(),
-        type: "organization", // Set as organization workspace
+        type: workspaceType, // Set as organization workspace
         ...(uploadedImagePath ||
         signatureFiles.length > 0 ||
         disabledFeatures.length > 0
@@ -335,11 +339,10 @@ export function WorkspaceDetailsPage() {
               <Building2 className="w-8 h-8 text-blue-600" />
             </div>
             <h1 className="text-2xl font-bold text-gray-900 mb-2">
-              Create Organization Workspace
+              Create {name} Workspace
             </h1>
             <p className="text-gray-600">
-              Set up a new organization workspace with custom branding and
-              features
+              Set up a new {name} workspace with custom branding and features
             </p>
           </div>
 

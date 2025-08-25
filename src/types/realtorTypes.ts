@@ -1,3 +1,5 @@
+import { Client } from ".";
+
 export interface User {
   first_name: string;
   last_name: string;
@@ -31,6 +33,10 @@ export interface RealtorState {
   realtors: Realtor[];
   realtorsLoading: boolean;
   realtorsError: string | null;
+
+  clients: Client[];
+  clientsLoading: boolean;
+  clientsError: string | null;
 
   // Leads data
   leads: Lead[];

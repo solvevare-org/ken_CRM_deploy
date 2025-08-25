@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import api, { handleApiError } from "../../utils/api";
 import { Lead, Realtor, RealtorState } from "../../types/realtorTypes";
+import { Client } from "@/types";
 
 // API base URL - adjust according to your setup
 const API_BASE_URL = "/api/realtor"; // or your API base URL
@@ -100,10 +101,27 @@ export const dashboardCounts = createAsyncThunk(
   }
 );
 
+export const fetchClients = createAsyncThunk(
+  "realtor/fetchClients",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await api.get(`${API_BASE_URL}/clients`);
+      return response.data.data as Client[];
+    } catch (error) {
+      console.log(error);
+      return rejectWithValue(handleApiError(error));
+    }
+  }
+);
+
 const initialState: RealtorState = {
   realtors: [],
   realtorsLoading: false,
   realtorsError: null,
+
+  clients: [],
+  clientsLoading: false,
+  clientsError: null,
 
   leads: [],
   leadsLoading: false,
@@ -355,6 +373,21 @@ const realtorSlice = createSlice({
         state.leadCount = 0;
         state.clientCount = 0;
         state.propertyCount = 0;
+      });
+
+    builder
+      .addCase(fetchClients.pending, (state) => {
+        state.clientsLoading = true;
+        state.clientsError = null;
+      })
+      .addCase(fetchClients.fulfilled, (state, action) => {
+        state.clientsLoading = false;
+        state.clientsError = null;
+        state.clients = action.payload;
+      })
+      .addCase(fetchClients.rejected, (state, action) => {
+        state.clientsLoading = false;
+        state.clientsError = action.payload as string;
       });
   },
 });
