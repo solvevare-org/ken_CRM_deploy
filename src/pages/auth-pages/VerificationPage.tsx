@@ -15,6 +15,7 @@ export function VerificationPage() {
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [verificationSuccessful, setVerificationSuccessful] = useState(false);
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { email, verificationMethod } = useAppSelector(
@@ -30,16 +31,19 @@ export function VerificationPage() {
       // Verify the verification code
       console.log(email, code, verificationMethod);
       const response = await dispatch(verifySignup({ email, code })).unwrap();
-
+      
       if (response.success) {
+        setVerificationSuccessful(true);
         if (response.data?.user_type === "Client") {
+          // Clear signup data before navigation for clients
+          dispatch(clearSignupData());
           navigate("/");
+          return;
+        } else {
+          // For realtors, navigate to payment page first, then clear data
+          navigate("/payment");
+          // Don't clear signup data here - let the payment page handle it
         }
-
-        // Navigate to payment page
-        navigate("/payment");
-        // Clear signup data after successful verification
-        dispatch(clearSignupData());
       } else {
         setError(
           response.message || "Invalid verification code. Please try again."
@@ -63,14 +67,16 @@ export function VerificationPage() {
 
   useEffect(() => {
     console.log("Missing Signup Data:", missingSignupData);
-    if (missingSignupData) {
+    console.log("Missing Signup Data:", email, " ", verificationMethod);
+    // Only redirect if verification was not successful and signup data is missing
+    if (missingSignupData && !verificationSuccessful) {
       dispatch(clearSignupData());
       // clear auth email (authSlice.setEmail expects a string)
       navigate("/signup-options");
     }
-  }, [missingSignupData, dispatch, navigate]);
+  }, [missingSignupData, verificationSuccessful, dispatch, navigate]);
 
-  if (missingSignupData) return null;
+  if (missingSignupData && !verificationSuccessful) return null;
 
   return (
     <PageLayout

@@ -43,16 +43,12 @@ export const SignUpForm: React.FC = () => {
   const method = watch("method");
 
   // get auth UI state from redux
-  const {
-    isLoading: loading,
-    signupSuccess: success,
-    error,
-  } = useAppSelector((state) => state.auth);
+  const { isLoading: loading, error } = useAppSelector((state) => state.auth);
 
   // Clear any residual auth errors when this form mounts
   useEffect(() => {
     dispatch(clearError());
-  }, [dispatch]);
+  }, [dispatch, error]);
 
   const onSubmit = async (data: SignUpSchemaType) => {
     // Check if user_type is available
@@ -190,13 +186,6 @@ export const SignUpForm: React.FC = () => {
         <p className="text-red-600 text-sm text-center">
           {errors.email?.message || errors.phone?.message}
         </p>
-      )}
-
-      {success && (
-        <div className="text-green-600 text-sm text-center bg-green-50 p-3 rounded-lg">
-          ✓ Account created successfully! Check your {verificationMethod} for
-          verification code. Redirecting...
-        </div>
       )}
       {error && <div className="text-red-600 text-sm text-center">{error}</div>}
 

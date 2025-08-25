@@ -173,7 +173,7 @@ export const checkUserExists = createAsyncThunk<
 // Check if user exists by email
 export const checkout = createAsyncThunk<
   ApiResponse,
-  { user_id: string | null; user_type: string | null },
+  { userId: string | null; user_type: string | null },
   { rejectValue: string }
 >("otherAuth/checkout", async (payload, { rejectWithValue }) => {
   try {
@@ -183,6 +183,7 @@ export const checkout = createAsyncThunk<
     );
     return response.data;
   } catch (error) {
+    console.log(error);
     const msg = handleApiError(error);
     return rejectWithValue(msg);
   }

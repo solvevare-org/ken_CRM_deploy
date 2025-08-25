@@ -174,13 +174,11 @@ const authSlice = createSlice({
       })
       .addCase(signup.fulfilled, (state) => {
         state.isLoading = false;
-        state.signupSuccess = true;
         state.error = null;
       })
       .addCase(signup.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload || "Signup failed";
-        state.signupSuccess = false;
       });
 
     // Verify client signup link cases
