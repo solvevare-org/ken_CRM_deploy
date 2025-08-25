@@ -1,19 +1,31 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAppContext } from '../../context/AppContext';
-import { Button } from '../../components/ui/Button';
-import { Input } from '../../components/ui/Input';
-import { Upload, Building2, Image as ImageIcon, Settings, FileText, AlertCircle, CheckCircle, X } from 'lucide-react';
-import { BASE_URL, CRM_BASE_DOMAIN } from '../../config';
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAppContext } from "../../context/AppContext";
+import { Button } from "../../components/ui/Button";
+import { Input } from "../../components/ui/Input";
+import {
+  Upload,
+  Building2,
+  Image as ImageIcon,
+  Settings,
+  FileText,
+  AlertCircle,
+  CheckCircle,
+  X,
+} from "lucide-react";
+import { BASE_URL, CRM_BASE_DOMAIN } from "../../config";
 
 export function WorkspaceDetailsPage() {
   const navigate = useNavigate();
   const { dispatch } = useAppContext();
 
   const [workspaceImage, setWorkspaceImage] = useState<string | null>(null);
-  const [workspaceName, setWorkspaceName] = useState('');
-  const [primaryColor] = useState('#3B82F6');
-  const [secondaryColor] = useState('#10B981');
+  const [uploadedImagePath, setUploadedImagePath] = useState<string | null>(
+    null
+  );
+  const [workspaceName, setWorkspaceName] = useState("");
+  const [primaryColor] = useState("#3B82F6");
+  const [secondaryColor] = useState("#10B981");
   const [signatureFiles, setSignatureFiles] = useState<File[]>([]);
   const [disabledFeatures, setDisabledFeatures] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
@@ -22,8 +34,8 @@ export function WorkspaceDetailsPage() {
   const [notification, setNotification] = useState<{
     show: boolean;
     message: string;
-    type: 'error' | 'success';
-  }>({ show: false, message: '', type: 'error' });
+    type: "error" | "success";
+  }>({ show: false, message: "", type: "error" });
   const [nameValidation, setNameValidation] = useState<{
     isValid: boolean;
     isChecking: boolean;
@@ -31,11 +43,11 @@ export function WorkspaceDetailsPage() {
   }>({ isValid: true, isChecking: false, message: "" });
 
   // Function to show notifications
-  const showNotification = (message: string, type: 'error' | 'success') => {
+  const showNotification = (message: string, type: "error" | "success") => {
     setNotification({ show: true, message, type });
     // Auto-hide after 5 seconds
     setTimeout(() => {
-      setNotification({ show: false, message: '', type: 'error' });
+      setNotification({ show: false, message: "", type: "error" });
     }, 5000);
   };
 
@@ -59,14 +71,44 @@ export function WorkspaceDetailsPage() {
     { id: "messaging", label: "Messages" },
   ];
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      // Show preview
       const reader = new FileReader();
       reader.onload = (e) => {
         setWorkspaceImage(e.target?.result as string);
       };
       reader.readAsDataURL(file);
+
+      // Upload file to server
+      try {
+        const formData = new FormData();
+        formData.append("logo", file);
+
+        const response = await fetch(`${BASE_URL}/api/workspaces/upload-logo`, {
+          method: "POST",
+          credentials: "include",
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+          body: formData,
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          setUploadedImagePath(result.data.path);
+        } else {
+          console.error("Failed to upload image");
+          showNotification(
+            "Failed to upload image. Please try again.",
+            "error"
+          );
+        }
+      } catch (error) {
+        console.error("Error uploading image:", error);
+        showNotification("Error uploading image. Please try again.", "error");
+      }
     }
   };
 
@@ -211,13 +253,21 @@ export function WorkspaceDetailsPage() {
       const workspaceData = {
         name: workspaceName.trim(),
         type: "organization", // Set as organization workspace
-        ...(workspaceImage || signatureFiles.length > 0 || disabledFeatures.length > 0 ? {
-          white_label_configurations: {
-            ...(workspaceImage && { logo_path: workspaceImage }),
-            ...(signatureFiles.length > 0 && { signature_paths: signatureFiles.map((file) => file.name) }),
-            ...(disabledFeatures.length > 0 && { features_disabled: disabledFeatures }),
-          }
-        } : {}),
+        ...(uploadedImagePath ||
+        signatureFiles.length > 0 ||
+        disabledFeatures.length > 0
+          ? {
+              white_label_configurations: {
+                ...(uploadedImagePath && { logo_path: uploadedImagePath }),
+                ...(signatureFiles.length > 0 && {
+                  signature_paths: signatureFiles.map((file) => file.name),
+                }),
+                ...(disabledFeatures.length > 0 && {
+                  features_disabled: disabledFeatures,
+                }),
+              },
+            }
+          : {}),
       };
 
       const response = await fetch(`${BASE_URL}/api/workspaces`, {
@@ -235,7 +285,7 @@ export function WorkspaceDetailsPage() {
       if (!response.ok) {
         throw new Error(result.message || "Failed to create workspace");
       }
-      
+
       if (result.success && result.data) {
         // Update local context with new workspace
         const newWorkspace = {
@@ -248,7 +298,7 @@ export function WorkspaceDetailsPage() {
           activeListings: 0,
           totalDeals: 0,
           monthlyRevenue: 0,
-          image: workspaceImage || undefined,
+          image: uploadedImagePath || workspaceImage || undefined,
           primaryColor,
           secondaryColor,
           signatureFiles: signatureFiles.map((file) => file.name),
@@ -267,8 +317,10 @@ export function WorkspaceDetailsPage() {
       console.error("Error creating workspace:", error);
       setLoading(false);
       showNotification(
-        error instanceof Error ? error.message : "Failed to create workspace. Please try again.",
-        'error'
+        error instanceof Error
+          ? error.message
+          : "Failed to create workspace. Please try again.",
+        "error"
       );
     }
   };
@@ -286,7 +338,8 @@ export function WorkspaceDetailsPage() {
               Create Organization Workspace
             </h1>
             <p className="text-gray-600">
-              Set up a new organization workspace with custom branding and features
+              Set up a new organization workspace with custom branding and
+              features
             </p>
           </div>
 
@@ -301,7 +354,7 @@ export function WorkspaceDetailsPage() {
                 <div className="bg-white p-3 rounded-lg">
                   <div className="text-gray-600 mb-1">Name</div>
                   <div className="font-medium text-gray-900">
-                    {workspaceName || 'Organization Workspace'}
+                    {workspaceName || "Organization Workspace"}
                   </div>
                 </div>
                 <div className="bg-white p-3 rounded-lg">
@@ -365,7 +418,8 @@ export function WorkspaceDetailsPage() {
             {/* Workspace Image */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-4">
-                Workspace Logo <span className="text-gray-500 font-normal">(Optional)</span>
+                Workspace Logo{" "}
+                <span className="text-gray-500 font-normal">(Optional)</span>
               </label>
               <div className="flex items-center space-x-6">
                 <div className="w-20 h-20 bg-gray-100 rounded-xl flex items-center justify-center border-2 border-dashed border-gray-300">
@@ -403,7 +457,8 @@ export function WorkspaceDetailsPage() {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-4">
                 <FileText className="w-4 h-4 inline mr-2" />
-                Signature Files <span className="text-gray-500 font-normal">(Optional)</span>
+                Signature Files{" "}
+                <span className="text-gray-500 font-normal">(Optional)</span>
               </label>
               <div className="space-y-4">
                 <div>
@@ -532,7 +587,9 @@ export function WorkspaceDetailsPage() {
                 !workspaceName.trim()
               }
             >
-              {loading ? "Creating Workspace..." : "Create Organization Workspace"}
+              {loading
+                ? "Creating Workspace..."
+                : "Create Organization Workspace"}
             </Button>
           </form>
 
@@ -548,7 +605,8 @@ export function WorkspaceDetailsPage() {
                     Workspace Created Successfully!
                   </h2>
                   <p className="text-gray-600 mb-4">
-                    Your organization workspace has been created and is ready to use.
+                    Your organization workspace has been created and is ready to
+                    use.
                   </p>
                 </div>
 
@@ -583,7 +641,7 @@ export function WorkspaceDetailsPage() {
                       <div className="text-gray-600 mb-1">Logo</div>
                       <div className="font-medium text-gray-900 flex items-center">
                         <ImageIcon className="w-4 h-4 mr-1" />
-                        {workspaceImage ? 'Uploaded' : 'Not uploaded'}
+                        {workspaceImage ? "Uploaded" : "Not uploaded"}
                       </div>
                     </div>
                   </div>
@@ -591,7 +649,9 @@ export function WorkspaceDetailsPage() {
                   {/* Features Configuration */}
                   <div className="mt-4">
                     <div className="bg-white p-3 rounded-lg">
-                      <div className="text-gray-600 mb-2">Features Configuration</div>
+                      <div className="text-gray-600 mb-2">
+                        Features Configuration
+                      </div>
                       {disabledFeatures.length > 0 ? (
                         <div>
                           <div className="font-medium text-red-800 mb-2">
@@ -626,11 +686,15 @@ export function WorkspaceDetailsPage() {
                     <div className="bg-white p-3 rounded-lg">
                       <div className="text-gray-600 mb-1">Workspace URL</div>
                       <div className="font-medium text-blue-600 text-sm break-all">
-                        {`${window.location.protocol}//${(createdWorkspace?.name || workspaceName)
+                        {`${window.location.protocol}//${(
+                          createdWorkspace?.name || workspaceName
+                        )
                           .trim()
                           .toLowerCase()
                           .replace(/[^a-z0-9]+/g, "-")
-                          .replace(/(^-|-$)/g, "")}.${CRM_BASE_DOMAIN}${window.location.port ? `:${window.location.port}` : ''}`}
+                          .replace(/(^-|-$)/g, "")}.${CRM_BASE_DOMAIN}${
+                          window.location.port ? `:${window.location.port}` : ""
+                        }`}
                       </div>
                     </div>
                   </div>
@@ -638,7 +702,7 @@ export function WorkspaceDetailsPage() {
 
                 {/* Action Buttons */}
                 <div className="space-y-3">
-                  <Button 
+                  <Button
                     className="w-full"
                     onClick={() => {
                       // Open workspace in same window with token transfer
@@ -647,26 +711,30 @@ export function WorkspaceDetailsPage() {
                         .toLowerCase()
                         .replace(/[^a-z0-9]+/g, "-")
                         .replace(/(^-|-$)/g, "");
-                      
+
                       const token = localStorage.getItem("token");
                       const protocol = window.location.protocol;
-                      const port = window.location.port ? `:${window.location.port}` : "";
-                      
+                      const port = window.location.port
+                        ? `:${window.location.port}`
+                        : "";
+
                       // Create workspace URL with token as query parameter for auto-login
-                      const workspaceUrl = `${protocol}//${slug}.${CRM_BASE_DOMAIN}${port}/?token=${encodeURIComponent(token || '')}&redirect=dashboard`;
-                      
+                      const workspaceUrl = `${protocol}//${slug}.${CRM_BASE_DOMAIN}${port}/?token=${encodeURIComponent(
+                        token || ""
+                      )}&redirect=dashboard`;
+
                       // Navigate to workspace subdomain
                       window.location.href = workspaceUrl;
                     }}
                   >
                     Open Workspace
                   </Button>
-                  <Button 
+                  <Button
                     variant="outline"
                     className="w-full"
                     onClick={() => {
                       // Navigate to workspace dashboard in current domain
-                      navigate('/workspace');
+                      navigate("/workspace");
                     }}
                   >
                     Go to Dashboard
@@ -696,37 +764,57 @@ export function WorkspaceDetailsPage() {
         {/* Toast Notification */}
         {notification.show && (
           <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-right duration-300">
-            <div className={`
+            <div
+              className={`
               max-w-md w-full bg-white rounded-lg shadow-lg border-l-4 p-4
-              ${notification.type === 'error' ? 'border-red-500' : 'border-green-500'}
-            `}>
+              ${
+                notification.type === "error"
+                  ? "border-red-500"
+                  : "border-green-500"
+              }
+            `}
+            >
               <div className="flex items-start">
                 <div className="flex-shrink-0">
-                  {notification.type === 'error' ? (
+                  {notification.type === "error" ? (
                     <AlertCircle className="w-5 h-5 text-red-600" />
                   ) : (
                     <CheckCircle className="w-5 h-5 text-green-600" />
                   )}
                 </div>
                 <div className="ml-3 flex-1">
-                  <p className={`text-sm font-medium ${
-                    notification.type === 'error' ? 'text-red-800' : 'text-green-800'
-                  }`}>
-                    {notification.type === 'error' ? 'Error' : 'Success'}
+                  <p
+                    className={`text-sm font-medium ${
+                      notification.type === "error"
+                        ? "text-red-800"
+                        : "text-green-800"
+                    }`}
+                  >
+                    {notification.type === "error" ? "Error" : "Success"}
                   </p>
-                  <p className={`mt-1 text-sm ${
-                    notification.type === 'error' ? 'text-red-700' : 'text-green-700'
-                  }`}>
+                  <p
+                    className={`mt-1 text-sm ${
+                      notification.type === "error"
+                        ? "text-red-700"
+                        : "text-green-700"
+                    }`}
+                  >
                     {notification.message}
                   </p>
                 </div>
                 <div className="flex-shrink-0 ml-4">
                   <button
-                    onClick={() => setNotification({ show: false, message: '', type: 'error' })}
+                    onClick={() =>
+                      setNotification({
+                        show: false,
+                        message: "",
+                        type: "error",
+                      })
+                    }
                     className={`rounded-md p-1.5 inline-flex items-center justify-center ${
-                      notification.type === 'error' 
-                        ? 'text-red-400 hover:text-red-600 focus:ring-red-600' 
-                        : 'text-green-400 hover:text-green-600 focus:ring-green-600'
+                      notification.type === "error"
+                        ? "text-red-400 hover:text-red-600 focus:ring-red-600"
+                        : "text-green-400 hover:text-green-600 focus:ring-green-600"
                     } hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2`}
                   >
                     <X className="w-4 h-4" />

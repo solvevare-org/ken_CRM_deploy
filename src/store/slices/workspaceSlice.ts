@@ -66,8 +66,10 @@ export const createWorkspace = createAsyncThunk<
         API_BASE_URL,
         workspaceData
       );
+      console.log("workspaec", response);
       return response.data;
     } catch (error) {
+      console.log("workspace erorr", error);
       return rejectWithValue(handleApiError(error));
     }
   }
