@@ -22,7 +22,7 @@ export function LoginPage() {
 
   useEffect(() => {
     dispatch(clearError());
-  }, []);
+  }, [authError]);
 
   // Navigate to workspace subdomain
   const handleWorkspaceClick = (workspace: any) => {

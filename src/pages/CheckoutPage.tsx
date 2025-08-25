@@ -18,14 +18,16 @@ export function CheckoutPage() {
   const navigate = useNavigate();
   // const { state } = useAppContext();
   const user = useAppSelector(selectUser);
-  const { user_id, user_type } = useAppSelector((state) => state.otherAuth);
+  const { user_id: userId, user_type } = useAppSelector(
+    (state) => state.otherAuth
+  );
   const dispatch = useAppDispatch();
 
   const handleConfirm = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
-    await dispatch(checkout({ user_id, user_type }));
+    await dispatch(checkout({ userId, user_type }));
 
     setTimeout(() => {
       setLoading(false);
