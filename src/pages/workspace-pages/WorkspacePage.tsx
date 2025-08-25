@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAppContext } from "../../context/AppContext";
+// import { useAppContext } from "../../context/AppContext";
 import { Button } from "../../components/ui/Button";
-import { BASE_URL, CRM_BASE_DOMAIN } from "../../config";
+import { CRM_BASE_DOMAIN } from "../../config";
 import {
   Plus,
   Settings,
@@ -16,8 +16,12 @@ import {
   X,
   Calendar,
 } from "lucide-react";
-import { useAppDispatch } from "@/store/hooks";
-import { getWorkspaces } from "@/store/slices/workspaceSlice";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import {
+  getWorkspaces,
+  selectCurrentWorkspace,
+} from "@/store/slices/workspaceSlice";
+import { logout, selectUser } from "@/store/slices/authSlice";
 
 export function WorkspacePage() {
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -29,11 +33,13 @@ export function WorkspacePage() {
   const [pendingInvites, setPendingInvites] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
-  const { state } = useAppContext();
+  //const { state } = useAppContext();
   const dispatch = useAppDispatch();
+  const user = useAppSelector(selectUser);
+  const currentWorkspace = useAppSelector(selectCurrentWorkspace);
 
   const handleLogout = () => {
-    dispatch({ type: "LOGOUT" });
+    dispatch(logout());
     navigate("/");
   };
 
@@ -115,7 +121,7 @@ export function WorkspacePage() {
                 </div>
                 <div>
                   <h1 className="text-lg font-semibold text-gray-900">
-                    {state.currentWorkspace?.name || "Workspace"}
+                    {currentWorkspace?.name || "Workspace"}
                   </h1>
                 </div>
               </div>
@@ -149,12 +155,12 @@ export function WorkspacePage() {
                 >
                   <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
                     <span className="text-white text-sm font-medium">
-                      {state.user?.name?.charAt(0) || "U"}
+                      {user?.first_name?.charAt(0) || "U"}
                     </span>
                   </div>
                   <div className="hidden md:block text-left">
                     <p className="text-sm font-medium text-gray-900">
-                      {state.user?.name}
+                      {user?.first_name} {user?.last_name}
                     </p>
                   </div>
                 </button>

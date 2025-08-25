@@ -1,6 +1,11 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
 import { ApiErrorResponse } from "../types";
-import store from "@/store/store"; // Import your store
+
+// Token getter is injected from the app (e.g., after store is created)
+let authTokenGetter: (() => string | undefined) | null = null;
+export const setAuthTokenGetter = (getter: () => string | undefined): void => {
+  authTokenGetter = getter;
+};
 
 // Configure axios defaults
 const api = axios.create({
@@ -25,8 +30,7 @@ api.interceptors.request.use(
     }
 
     // Get token from Redux state
-    const state = store.getState();
-    const token = state.auth?.token;
+    const token = authTokenGetter ? authTokenGetter() : undefined;
 
     if (token) {
       config.headers = config.headers || {};

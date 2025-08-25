@@ -5,7 +5,7 @@ import { PageLayout } from "@/components/layout/PageLayout";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Shield, Mail } from "lucide-react";
-import { clearSignupData } from "@/store/slices/authSlice";
+import { clearSignupData } from "@/store/slices/otherAuthSlice";
 import {
   requestVerificationCode,
   verifySignup,
@@ -17,7 +17,9 @@ export function VerificationPage() {
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const { email, verificationMethod } = useAppSelector((state) => state.auth);
+  const { email, verificationMethod } = useAppSelector(
+    (state) => state.otherAuth
+  );
 
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,11 +32,14 @@ export function VerificationPage() {
       const response = await dispatch(verifySignup({ email, code })).unwrap();
 
       if (response.success) {
-        // Clear signup data after successful verification
-        dispatch(clearSignupData());
+        if (response.data?.user_type === "Client") {
+          navigate("/");
+        }
 
         // Navigate to payment page
         navigate("/payment");
+        // Clear signup data after successful verification
+        dispatch(clearSignupData());
       } else {
         setError(
           response.message || "Invalid verification code. Please try again."
@@ -55,6 +60,7 @@ export function VerificationPage() {
 
   // Redirect if no signup data is available. Use effect to avoid dispatch/navigation during render.
   const missingSignupData = !email && !verificationMethod;
+
   useEffect(() => {
     console.log("Missing Signup Data:", missingSignupData);
     if (missingSignupData) {

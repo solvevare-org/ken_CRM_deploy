@@ -1,13 +1,14 @@
-import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import api, { handleApiError } from "@/utils/api";
 import { ApiResponse } from "@/types/authTypes";
+import { toast } from "react-toastify";
 
 const BASE_URL = "api/auth";
 
 // Verify signup (email code)
 export const verifySignup = createAsyncThunk<
   ApiResponse,
-  { email: string; code: string },
+  { email: string | null; code: string },
   { rejectValue: string }
 >("otherAuth/verifySignup", async (payload, { rejectWithValue }) => {
   try {
@@ -15,6 +16,7 @@ export const verifySignup = createAsyncThunk<
       `${BASE_URL}/verify-signup`,
       payload
     );
+    toast.success(response.data.message || "Verification successful");
     return response.data;
   } catch (error) {
     console.log(error);
@@ -26,7 +28,7 @@ export const verifySignup = createAsyncThunk<
 // Request a new verification code for an in-progress signup
 export const requestVerificationCode = createAsyncThunk<
   ApiResponse,
-  { email: string },
+  { email: string | null },
   { rejectValue: string }
 >("otherAuth/requestVerificationCode", async (payload, { rejectWithValue }) => {
   try {
@@ -34,6 +36,7 @@ export const requestVerificationCode = createAsyncThunk<
       `${BASE_URL}/request-verification-code`,
       payload
     );
+    toast.success(response.data.message || "Verification code sent");
     return response.data;
   } catch (error) {
     console.log(error);
@@ -167,8 +170,30 @@ export const checkUserExists = createAsyncThunk<
   }
 });
 
+// Check if user exists by email
+export const checkout = createAsyncThunk<
+  ApiResponse,
+  { user_id: string | null; user_type: string | null },
+  { rejectValue: string }
+>("otherAuth/checkout", async (payload, { rejectWithValue }) => {
+  try {
+    const response = await api.post<ApiResponse>(
+      `${BASE_URL}/checkout`,
+      payload
+    );
+    return response.data;
+  } catch (error) {
+    const msg = handleApiError(error);
+    return rejectWithValue(msg);
+  }
+});
+
 // Slice state
 interface OtherAuthState {
+  user_id: string | null;
+  user_type: string | null;
+  email: string | null;
+  verificationMethod: "email" | "sms" | null;
   isLoading: boolean;
   error: string | null;
   currentUser: any | null;
@@ -177,6 +202,10 @@ interface OtherAuthState {
 }
 
 const initialState: OtherAuthState = {
+  user_id: null,
+  user_type: null,
+  email: null,
+  verificationMethod: null,
   isLoading: false,
   error: null,
   currentUser: null,
@@ -188,6 +217,32 @@ const otherAuthSlice = createSlice({
   name: "otherAuth",
   initialState,
   reducers: {
+    // Set email
+    setEmail: (state, action: PayloadAction<string>) => {
+      state.email = action.payload;
+    },
+    setVerificationMethod: (
+      state,
+      action: PayloadAction<"email" | "sms" | null>
+    ) => {
+      state.verificationMethod = action.payload;
+    },
+
+    setUserType: (state, action: PayloadAction<string>) => {
+      state.user_type = action.payload;
+    },
+
+    clearSignupData: (state) => {
+      state.email = null;
+      state.verificationMethod = null;
+      state.user_type = null;
+    },
+
+    clearCheckout: (state) => {
+      state.user_id = null;
+      state.user_type = null;
+    },
+
     clearOtherAuthError(state) {
       state.error = null;
     },
@@ -203,9 +258,11 @@ const otherAuthSlice = createSlice({
         state.isLoading = true;
         state.error = null;
       })
-      .addCase(verifySignup.fulfilled, (state) => {
+      .addCase(verifySignup.fulfilled, (state, action) => {
         state.isLoading = false;
         state.error = null;
+        state.user_id = action.payload?.data?.user;
+        state.user_type = action.payload.data.user_type;
       })
       .addCase(verifySignup.rejected, (state, action) => {
         state.isLoading = false;
@@ -331,11 +388,31 @@ const otherAuthSlice = createSlice({
         state.isLoading = false;
         state.error = action.payload || "Check user failed";
       });
+
+    // checkUserExists
+    builder
+      .addCase(checkout.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(checkout.fulfilled, (state) => {
+        state.isLoading = false;
+      })
+      .addCase(checkout.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload || "Check user failed";
+      });
   },
 });
 
-export const { clearOtherAuthError, clearForgotResetFlags } =
-  otherAuthSlice.actions;
+export const {
+  setEmail,
+  setVerificationMethod,
+  clearSignupData,
+  setUserType,
+  clearOtherAuthError,
+  clearForgotResetFlags,
+} = otherAuthSlice.actions;
 
 export const selectOtherAuth = (state: { otherAuth: OtherAuthState }) =>
   state.otherAuth;
