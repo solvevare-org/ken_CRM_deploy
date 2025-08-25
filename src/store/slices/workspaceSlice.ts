@@ -26,6 +26,7 @@ export const getWorkspaces = createAsyncThunk<
     console.log(response);
     return response.data;
   } catch (error) {
+    console.log(error);
     return rejectWithValue(handleApiError(error));
   }
 });

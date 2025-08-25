@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { SignUpSchema, type SignUpSchemaType } from "@/schema/signupSchema";
@@ -6,17 +6,17 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Mail, Smartphone } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { signup, clearError } from "@/store/slices/authSlice";
+import { useNavigate } from "react-router-dom";
 import {
   setEmail,
-  signup,
-  setVerificationMethod,
   setUserType,
-} from "@/store/slices/authSlice";
-import { useNavigate } from "react-router-dom";
+  setVerificationMethod,
+} from "@/store/slices/otherAuthSlice";
 
 export const SignUpForm: React.FC = () => {
   const dispatch = useAppDispatch();
-  const { user_type } = useAppSelector((state) => state.auth);
+  const { user_type } = useAppSelector((state) => state.otherAuth);
   const navigate = useNavigate();
   const {
     register,
@@ -37,6 +37,9 @@ export const SignUpForm: React.FC = () => {
     },
   });
 
+  // Removed the useEffect that was causing premature redirect
+  // The verification page will handle redirects if needed
+
   const method = watch("method");
 
   // get auth UI state from redux
@@ -46,20 +49,42 @@ export const SignUpForm: React.FC = () => {
     error,
   } = useAppSelector((state) => state.auth);
 
+  // Clear any residual auth errors when this form mounts
+  useEffect(() => {
+    dispatch(clearError());
+  }, [dispatch]);
+
   const onSubmit = async (data: SignUpSchemaType) => {
+    // Check if user_type is available
+    if (!user_type) {
+      console.error("No user type selected");
+      navigate("/signup-options");
+      return;
+    }
+
     console.log(data);
     const result = await dispatch(
       signup({ ...data, user_type: user_type })
     ).unwrap();
+
     if (result.success) {
-      dispatch(setUserType(""));
+      // Set email/phone and verification method based on chosen method
       if (data.method === "email") {
         if (data.email) {
+          console.log("Setting email:", data.email);
           dispatch(setEmail(data.email));
           dispatch(setVerificationMethod("email"));
         }
+      } else if (data.method === "phone") {
+        if (data.phone) {
+          console.log("Setting phone:", data.phone);
+          dispatch(setEmail(data.phone)); // Using email field for phone too
+          dispatch(setVerificationMethod("sms"));
+        }
       }
-      // Optionally handle post-signup success actions here
+
+      // Clear user type and navigate to verification page
+      dispatch(setUserType(""));
       navigate("/verification");
     }
   };

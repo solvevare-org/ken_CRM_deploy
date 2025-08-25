@@ -7,22 +7,22 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Mail, Lock, Sparkles, Zap } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { selectIsLoading, login } from "@/store/slices/authSlice";
+import { selectIsLoading, login, clearError } from "@/store/slices/authSlice";
 import { CRM_BASE_DOMAIN } from "@/config";
+import { setEmail } from "@/store/slices/otherAuthSlice";
 
 export function LoginPage() {
-  const [email, setEmail] = useState("");
+  const [email, setEmailLocal] = useState("");
   const [password, setPassword] = useState("");
   // const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const loading = useAppSelector(selectIsLoading);
+  const { error: authError } = useAppSelector((state) => state.auth);
 
-  // Dev: observe loading changes
   useEffect(() => {
-    console.debug("auth loading changed:", loading);
-  }, [loading]);
+    dispatch(clearError());
+  }, []);
 
   // Navigate to workspace subdomain
   const handleWorkspaceClick = (workspace: any) => {
@@ -41,14 +41,18 @@ export function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     // setLoading(true);
-    setError(null);
+    // setError(null);
     try {
       const result = await dispatch(login({ email, password })).unwrap();
-      if (result.statusCode !== 200) {
-        setError("Authentication failed. Please check your credentials.");
+      console.log(result);
+
+      if (result.data?.type === "Unverified Login") {
+        // Handle unverified login case
+        dispatch(setEmail(email));
+        navigate("/verification");
         return;
       }
-      console.log(result);
+
       const user = result.data;
       dispatch({ type: "SET_USER", payload: user });
 
@@ -61,13 +65,13 @@ export function LoginPage() {
         // Default fallback
         navigate("/workspace");
       }
-    } catch (err) {
-      setError("An error occurred. Please try again.");
+    } catch (_err) {
       // setLoading(false);
     }
   };
 
   const handleSignup = () => {
+    dispatch(clearError());
     navigate("/signup-options");
   };
 
@@ -83,7 +87,7 @@ export function LoginPage() {
             label="Email Address"
             type="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => setEmailLocal(e.target.value)}
             icon={<Mail size={20} />}
             required
           />
@@ -110,9 +114,9 @@ export function LoginPage() {
               Forgot password?
             </button>
           </div>
-          {error && (
+          {authError && (
             <div className="text-red-600 text-sm font-medium text-center mb-2">
-              {error}
+              {authError}
             </div>
           )}
           <Button

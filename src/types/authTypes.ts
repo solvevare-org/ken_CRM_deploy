@@ -27,12 +27,10 @@ export interface LoginData {
 }
 
 export interface AuthState {
-  email: string;
-  verificationMethod: "email" | "sms" | null;
   user: User | null;
   token: string | null;
-  user_type: string | null;
   isAuthenticated: boolean;
+  user_type: string | null;
   isLoading: boolean;
   error: string | null;
   signupSuccess: boolean;

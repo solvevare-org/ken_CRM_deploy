@@ -8,6 +8,8 @@ import leadFormLinkReducer from "./slices/leadFormLinkSlice";
 import realtorReducer from "./slices/realtorSlice";
 import authReducer from "./slices/authSlice"; // Adjust path as needed
 import otherAuthReducer from "./slices/otherAuthSlice";
+import workspaceReducer from "./slices/workspaceSlice";
+import { setAuthTokenGetter } from "@/utils/api";
 
 // Persist configuration for auth slice
 const authPersistConfig = {
@@ -36,6 +38,7 @@ const store = configureStore({
     auth: persistedAuthReducer,
     otherAuth: otherAuthReducer,
     realtor: persistedRealtorReducer,
+    workspace: workspaceReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
@@ -45,6 +48,9 @@ const store = configureStore({
     }),
   devTools: import.meta.env.DEV,
 });
+
+// Provide token getter to API layer to avoid circular imports
+setAuthTokenGetter(() => store.getState().auth?.token ?? undefined);
 
 export const persistor = persistStore(store);
 export default store;

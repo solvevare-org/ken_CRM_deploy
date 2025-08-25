@@ -2,6 +2,7 @@ import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import api, { handleApiError } from "@/utils/api"; // Adjust path as needed
 import { ApiResponse, AuthState, LoginData, User } from "@/types/authTypes";
 import type { SignUpSchemaType } from "@/schema/signupSchema";
+import { toast } from "react-toastify";
 
 // Payload for signup includes the form fields plus optional user_type
 type SignUpPayload = SignUpSchemaType & { user_type?: string | null };
@@ -28,20 +29,23 @@ export const signup = createAsyncThunk<
 export const login = createAsyncThunk<
   ApiResponse<{
     workspace?: any;
+    type?: string;
     token: string;
     user_type: string;
+    user: User;
   }>,
   LoginData,
   { rejectValue: string }
 >("auth/login", async (loginData, { rejectWithValue }) => {
   try {
     const response = await api.post<
-      ApiResponse<{ token: string; user_type: string }>
+      ApiResponse<{ token: string; user_type: string; user: User }>
     >(`/api/auth/login`, loginData);
-
+    toast.success(response.data.message || "Login successful");
+    console.log("login response", response);
     return response.data;
   } catch (error) {
-    console.log(error);
+    console.log("login error", error);
     const errorMessage = handleApiError(error);
     return rejectWithValue(errorMessage);
   }
@@ -61,6 +65,7 @@ export const verifyClientSignupLink = createAsyncThunk<
   } catch (error) {
     console.log("error verifying client signup ", error);
     const errorMessage = handleApiError(error);
+    toast.error(errorMessage);
     return rejectWithValue(errorMessage);
   }
 });
@@ -95,27 +100,24 @@ export const logout = createAsyncThunk<void, void, { rejectValue: string }>(
   async (_, { rejectWithValue }) => {
     try {
       // Call logout endpoint if you have one
-      // await api.post('/logout');
+      await api.post(`${BASE_URL}/logout`);
     } catch (error) {
+      console.log(error);
       const errorMessage = handleApiError(error);
       return rejectWithValue(errorMessage);
     }
   }
 );
 
-
-
 // Initial state
 const initialState: AuthState = {
-  email: "",
-  verificationMethod: null,
   user: null,
   token: null,
-  user_type: null, // Add user_type to state
   isAuthenticated: false,
   isLoading: false,
   error: null,
   signupSuccess: false,
+  user_type: null,
   // client signup / link verification state
   clientSignupLoading: false,
   clientSignupError: null,
@@ -130,25 +132,6 @@ const authSlice = createSlice({
   name: "auth",
   initialState,
   reducers: {
-    // Set email
-    setEmail: (state, action: PayloadAction<string>) => {
-      state.email = action.payload;
-    },
-    setVerificationMethod: (
-      state,
-      action: PayloadAction<"email" | "sms" | null>
-    ) => {
-      state.verificationMethod = action.payload;
-    },
-
-    setUserType: (state, action: PayloadAction<string>) => {
-      state.user_type = action.payload;
-    },
-
-    clearSignupData: (state) => {
-      state.email = "";
-      state.verificationMethod = null;
-    },
     // Clear error
     clearError: (state) => {
       state.error = null;
@@ -243,10 +226,13 @@ const authSlice = createSlice({
       })
       .addCase(login.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.isAuthenticated = true;
-        state.token = action.payload.data?.token || null;
-        state.user_type = action.payload.data?.user_type || null;
-        state.error = null;
+        if (action.payload?.data?.type !== "Unverified Login") {
+          state.isAuthenticated = true;
+          state.token = action.payload.data?.token || null;
+          state.user_type = action.payload.data?.user_type || null;
+          state.user = action.payload.data?.user || null;
+          state.error = null;
+        }
       })
       .addCase(login.rejected, (state, action) => {
         state.isLoading = false;
@@ -266,6 +252,7 @@ const authSlice = createSlice({
         state.isLoading = false;
         state.isAuthenticated = false;
         state.token = null;
+        state.user_type = null;
         state.user = null;
         state.error = null;
         // Token/cookie is managed by backend; frontend shouldn't remove cookies.
@@ -275,6 +262,7 @@ const authSlice = createSlice({
         // Still log out locally even if server request fails
         state.isAuthenticated = false;
         state.token = null;
+        state.user_type = null;
         state.user = null;
         state.error = action.payload || "Logout failed";
       });
@@ -282,21 +270,14 @@ const authSlice = createSlice({
 });
 
 // Export actions
-export const {
-  setEmail,
-  setVerificationMethod,
-  clearSignupData,
-  setUserType,
-  clearError,
-  clearSignupSuccess,
-  setUser,
-  setToken,
-  resetAuth,
-} = authSlice.actions;
+export const { clearError, clearSignupSuccess, setUser, setToken, resetAuth } =
+  authSlice.actions;
 
 // Selectors
 export const selectAuth = (state: { auth: AuthState }) => state.auth;
 export const selectUser = (state: { auth: AuthState }) => state.auth.user;
+export const selectUserType = (state: { auth: AuthState }) =>
+  state.auth.user_type;
 export const selectUserToken = (state: { auth: AuthState }) => state.auth.token;
 export const selectIsAuthenticated = (state: { auth: AuthState }) =>
   state.auth.isAuthenticated;

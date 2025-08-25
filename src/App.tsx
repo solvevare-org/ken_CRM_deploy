@@ -7,6 +7,7 @@ import {
 } from "react-router-dom";
 import { AppProvider } from "@/context/AppContext";
 import { Menu } from "lucide-react";
+import { ToastContainer } from "react-toastify";
 
 //Client Portal Components
 import Layout from "@/components/Layout";
@@ -250,6 +251,7 @@ function App() {
 
   return (
     <AppProvider>
+      <ToastContainer />
       <Router>
         <div className="min-h-screen bg-gray-50">
           <Routes>
