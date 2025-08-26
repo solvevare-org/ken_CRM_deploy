@@ -8,8 +8,29 @@ export const setAuthTokenGetter = (getter: () => string | undefined): void => {
 };
 
 // Configure axios defaults
+// Use the page's hostname so API requests target the same domain (lvh.me / subdomains)
+// — this ensures cookies set for ".lvh.me" are sent with XHRs from subdomains like
+// hzuaifa-personal-4.lvh.me. Fall back to localhost when window is not available.
+const getApiBaseUrl = (): string => {
+  try {
+    if (
+      typeof window !== "undefined" &&
+      window.location &&
+      window.location.hostname
+    ) {
+      const host = window.location.hostname; // e.g. hzuaifa-personal-4.lvh.me or localhost
+      // Backend default port in dev
+      const apiPort = "3000";
+      return `http://${host}:${apiPort}`;
+    }
+  } catch (e) {
+    // ignore and fall back
+  }
+  return "http://localhost:3000";
+};
+
 const api = axios.create({
-  baseURL: "http://localhost:3000",
+  baseURL: getApiBaseUrl(),
   withCredentials: true, // For HTTP-only cookies
 });
 

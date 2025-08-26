@@ -205,11 +205,11 @@ function App() {
     console.log("Hostname:", hostname);
     console.log("Parts:", parts);
 
-    // Check if it's a workspace subdomain (e.g., tenant-1.crm.localhost)
+    // Check if it's a workspace subdomain (e.g., tenant-1.lvh.me)
     if (parts.length >= 3) {
       const baseDomain = parts.slice(-2).join(".");
       console.log("Base domain:", baseDomain);
-      const isWorkspace = baseDomain === "crm.localhost" && parts[0] !== "crm";
+      const isWorkspace = baseDomain === "lvh.me" && parts[0] !== "crm";
       console.log("Is workspace subdomain:", isWorkspace);
       return isWorkspace;
     }

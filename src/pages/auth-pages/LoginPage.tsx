@@ -32,8 +32,9 @@ export function LoginPage() {
       .replace(/(^-|-$)/g, "");
 
     const protocol = window.location.protocol;
+    const host = `${slug}.${CRM_BASE_DOMAIN}`;
     const port = window.location.port ? `:${window.location.port}` : "";
-    const targetUrl = `${protocol}//${slug}.${CRM_BASE_DOMAIN}${port}/client`;
+    const targetUrl = `${protocol}//${host}${port}/client`;
 
     window.location.assign(targetUrl);
   };

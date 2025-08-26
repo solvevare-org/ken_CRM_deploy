@@ -15,8 +15,13 @@ export default defineConfig({
     },
   },
   server: {
-    host: true,
+    host: 'lvh.me',
     port: 5173,
+    // https: true, // Uncomment and configure as below if you need HTTPS
+    // https: {
+    //   key: fs.readFileSync('./cert/key.pem'),
+    //   cert: fs.readFileSync('./cert/cert.pem'),
+    // },
     strictPort: true,
     // Allow HMR to work when accessed via custom hosts like crm.localhost or tenant-*.crm.localhost
     hmr: {

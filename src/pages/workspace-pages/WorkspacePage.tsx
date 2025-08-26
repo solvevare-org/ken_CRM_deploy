@@ -87,8 +87,10 @@ export function WorkspacePage() {
       .replace(/(^-|-$)/g, "");
 
     const protocol = window.location.protocol;
+    // CRM_BASE_DOMAIN now contains only the host (e.g. lvh.me). Append current port if present.
+    const host = `${slug}.${CRM_BASE_DOMAIN}`;
     const port = window.location.port ? `:${window.location.port}` : "";
-    const targetUrl = `${protocol}//${slug}.${CRM_BASE_DOMAIN}${port}/realtor`;
+    const targetUrl = `${protocol}//${host}${port}/realtor`;
 
     try {
       // Ask backend to select workspace (backend may set cookie/session for subdomain)
