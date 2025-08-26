@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, Plus, MapPin, Bed, Bath, Square, ChevronLeft, ChevronRight, X, Upload } from 'lucide-react';
+import { Search, Filter, Plus, MapPin, Bed, Bath, Square, ChevronRight, X} from 'lucide-react';
 import api from '../utils/api';
 
 // Define the backend data structure types
