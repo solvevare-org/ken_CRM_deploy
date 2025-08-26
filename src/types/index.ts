@@ -78,6 +78,82 @@ export interface ClientProperty {
   };
 }
 
+// New API-based Client Property interfaces
+export interface ClientPropertyAddress {
+  street: string;
+  city: string;
+  state: string;
+  postal_code: string;
+  country: string;
+}
+
+export interface ClientPropertyLocation {
+  latitude: number;
+  longitude: number;
+  street_view_url?: string;
+  county_fips?: string;
+}
+
+export interface ClientPropertyDetails {
+  beds: number;
+  baths: number;
+  baths_full: number;
+  baths_half: number | null;
+  sqft: number;
+  lot_sqft: number;
+  year_built: number | null;
+  sub_type: string | null;
+}
+
+export interface ClientPropertyMedia {
+  primary_photo: string;
+  photo_count: number;
+}
+
+export interface ClientPropertyFlags {
+  is_new_listing: boolean;
+  is_pending: boolean;
+  is_contingent: boolean;
+  is_foreclosure: boolean;
+  is_new_construction: boolean;
+  is_plan: boolean;
+  is_coming_soon: boolean;
+  is_price_reduced: boolean;
+}
+
+export interface ClientPropertyAPI {
+  _id: string;
+  name: string;
+  price: number;
+  status: string;
+  property_type: string;
+  source_type: string;
+  createdAt: string;
+  listed_date: string;
+  fullAddress: string;
+  imageArray: string[];
+  id: string;
+  address: ClientPropertyAddress;
+  location?: ClientPropertyLocation;
+  details?: ClientPropertyDetails;
+  media?: ClientPropertyMedia;
+  flags?: ClientPropertyFlags;
+}
+
+export interface ClientPropertyApiResponse {
+  statusCode: number;
+  message: string;
+  data: {
+    items: ClientPropertyAPI[];
+    pageInfo: {
+      endCursor: string;
+      hasNextPage: boolean;
+    };
+    role: string;
+  };
+  success: boolean;
+}
+
 export interface ChatMessage {
   id: string;
   content: string;
