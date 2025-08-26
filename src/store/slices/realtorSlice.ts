@@ -51,8 +51,10 @@ export const generateClientLink = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const response = await api.get(`${API_BASE_URL}/generate-link`);
+      console.log(response);
       return response.data.data as string;
     } catch (error) {
+      console.log(error);
       return rejectWithValue(handleApiError(error));
     }
   }
@@ -105,7 +107,8 @@ export const fetchClients = createAsyncThunk(
   "realtor/fetchClients",
   async (_, { rejectWithValue }) => {
     try {
-      const response = await api.get(`${API_BASE_URL}/clients`);
+      // Backend exposes clients at /api/customers
+      const response = await api.get(`/api/customers`);
       return response.data.data as Client[];
     } catch (error) {
       console.log(error);

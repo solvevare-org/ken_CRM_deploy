@@ -40,16 +40,9 @@ const Clients: React.FC = () => {
   const loadClients = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem("token");
-
-      console.log("Fetching clients from:", `${BASE_URL}/api/clients`);
-      console.log("Token:", token ? "exists" : "missing");
-      console.log("Current origin:", window.location.origin);
-      console.log("Current hostname:", window.location.hostname);
 
       // The fetchClients thunk returns an array of clients (Client[]).
       const result = await dispatch(fetchClients()).unwrap();
-      console.log("Fetched clients (thunk result):", result);
 
       if (Array.isArray(result) && result.length > 0) {
         // Transform the data to match our local Client interface if needed
@@ -80,11 +73,9 @@ const Clients: React.FC = () => {
       } else {
         setClients([]);
       }
-    } catch (error) {
-      console.error("Error fetching clients:", error);
-      setError(
-        error instanceof Error ? error.message : "Failed to fetch clients"
-      );
+    } catch (err) {
+      console.error("Error fetching clients:", err);
+      setError(err instanceof Error ? err.message : "Failed to fetch clients");
       setClients([]);
     } finally {
       setLoading(false);
@@ -94,6 +85,7 @@ const Clients: React.FC = () => {
   // Fetch clients when component mounts
   useEffect(() => {
     loadClients();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const getStatusColor = (status: string) => {
@@ -143,7 +135,7 @@ const Clients: React.FC = () => {
           </p>
         </div>
         <button
-          onClick={() => setIsAddClientModalOpen(true)}
+          onClick={() => setIsModalOpen(true)}
           className="mt-4 sm:mt-0 inline-flex items-center px-3 lg:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm lg:text-base"
         >
           <Plus className="w-4 h-4 mr-2" />
@@ -180,7 +172,7 @@ const Clients: React.FC = () => {
         </div>
       </div>
 
-      {/* Error State */}
+      {/* Error State
       {error && (
         <div className="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
           <p>Error loading clients: {error}</p>
@@ -191,7 +183,7 @@ const Clients: React.FC = () => {
             Retry
           </button>
         </div>
-      )}
+      )} */}
 
       {/* Loading State */}
       {loading ? (
