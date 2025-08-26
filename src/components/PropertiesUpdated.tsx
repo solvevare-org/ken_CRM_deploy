@@ -21,6 +21,11 @@ const Properties: React.FC<PropertiesProps> = ({ onToggleFavorite }) => {
   });
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedProperty, setSelectedProperty] = useState<ClientPropertyAPI | null>(null);
+  const [showInquireModal, setShowInquireModal] = useState(false);
+  const [inquireProperty, setInquireProperty] = useState<ClientPropertyAPI | null>(null);
+  const [propertyDetails, setPropertyDetails] = useState<any>(null);
+  const [loadingDetails, setLoadingDetails] = useState(false);
+  const [detailsError, setDetailsError] = useState<string | null>(null);
 
   // Fetch properties from API with proper authentication
   const fetchProperties = async (cursor?: string) => {
@@ -109,6 +114,49 @@ const Properties: React.FC<PropertiesProps> = ({ onToggleFavorite }) => {
     setShowDetailsModal(true);
   };
 
+  // Handle inquire
+  const handleInquire = async (property: ClientPropertyAPI) => {
+    setInquireProperty(property);
+    setShowInquireModal(true);
+    await fetchPropertyDetails(property._id);
+  };
+
+  // Fetch property details from API
+  const fetchPropertyDetails = async (propertyId: string) => {
+    try {
+      setLoadingDetails(true);
+      setDetailsError(null);
+      
+      const url = `${BASE_URL}/api/property-details/client/${propertyId}`;
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        credentials: 'include', // Include cookies
+        headers: {
+          'Content-Type': 'application/json',
+          'Host': window.location.hostname, // Include host header
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: Failed to fetch property details`);
+      }
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setPropertyDetails(data.data);
+      } else {
+        throw new Error(data.message || 'Failed to fetch property details');
+      }
+    } catch (err) {
+      console.error('Error fetching property details:', err);
+      setDetailsError(err instanceof Error ? err.message : 'Failed to fetch property details');
+    } finally {
+      setLoadingDetails(false);
+    }
+  };
+
   // Get status color
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
@@ -194,9 +242,9 @@ const Properties: React.FC<PropertiesProps> = ({ onToggleFavorite }) => {
         <p className="text-gray-600 mt-2">Discover your perfect home from our curated listings</p>
       </div>
 
-      {/* Filters */}
+      {/* Search and Filters */}
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Search */}
           <div className="relative">
             <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
@@ -323,7 +371,7 @@ const Properties: React.FC<PropertiesProps> = ({ onToggleFavorite }) => {
               <div className="border-t pt-4">
                 <div className="flex space-x-3">
                   <button
-                    // onClick={() => handleInquire(property)}
+                    onClick={() => handleInquire(property)}
                     className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
                   >
                     Inquire
@@ -577,6 +625,195 @@ const Properties: React.FC<PropertiesProps> = ({ onToggleFavorite }) => {
                   Close
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Inquire Modal with Property Details */}
+      {showInquireModal && inquireProperty && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <h2 className="text-xl font-semibold text-gray-900">Property Inquiry - {inquireProperty.name}</h2>
+              <button
+                onClick={() => setShowInquireModal(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-6">
+              {loadingDetails ? (
+                <div className="text-center py-12">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                  <p className="text-gray-600">Loading property details...</p>
+                </div>
+              ) : detailsError ? (
+                <div className="text-center py-12">
+                  <div className="text-red-500 mb-4">
+                    <div className="text-6xl">⚠️</div>
+                  </div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">Error loading details</h3>
+                  <p className="text-gray-600">{detailsError}</p>
+                  <button 
+                    onClick={() => fetchPropertyDetails(inquireProperty._id)} 
+                    className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    Try Again
+                  </button>
+                </div>
+              ) : propertyDetails ? (
+                <>
+                  {/* Property Image */}
+                  <div className="relative">
+                    <img
+                      src={propertyDetails.media?.primary_photo || inquireProperty.media?.primary_photo || 'https://images.pexels.com/photos/1396122/pexels-photo-1396122.jpeg?auto=compress&cs=tinysrgb&w=600'}
+                      alt={propertyDetails.name}
+                      className="w-full h-64 object-cover rounded-lg"
+                    />
+                    <div className="absolute top-4 right-4">
+                      <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(inquireProperty.status)}`}>
+                        {inquireProperty.status}
+                      </span>
+                    </div>
+                    {propertyDetails.flags?.is_new_listing && (
+                      <div className="absolute top-4 left-4">
+                        <span className="px-2 py-1 bg-red-500 text-white text-sm font-medium rounded-full">
+                          New
+                        </span>
+                      </div>
+                    )}
+                    {propertyDetails.flags?.is_price_reduced && (
+                      <div className="absolute top-4 left-20">
+                        <span className="px-2 py-1 bg-orange-500 text-white text-sm font-medium rounded-full">
+                          Price Reduced
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Property Information */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <h3 className="text-lg font-medium text-gray-900 mb-4">Property Information</h3>
+                      <div className="space-y-3">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700">Property Name</label>
+                          <p className="text-sm text-gray-900">{propertyDetails.name}</p>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700">Price</label>
+                          <p className="text-lg font-bold text-gray-900">{formatPrice(propertyDetails.pricing?.list_price || inquireProperty.price)}</p>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700">Full Address</label>
+                          <p className="text-sm text-gray-900">{propertyDetails.fullAddress}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h3 className="text-lg font-medium text-gray-900 mb-4">Property Details</h3>
+                      <div className="space-y-3">
+                        {propertyDetails.details?.beds && (
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700">Bedrooms</label>
+                            <p className="text-sm text-gray-900">{propertyDetails.details.beds}</p>
+                          </div>
+                        )}
+                        {propertyDetails.details?.baths && (
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700">Bathrooms</label>
+                            <p className="text-sm text-gray-900">{propertyDetails.details.baths}</p>
+                          </div>
+                        )}
+                        {propertyDetails.details?.sqft && (
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700">Square Feet</label>
+                            <p className="text-sm text-gray-900">{propertyDetails.details.sqft.toLocaleString()} sq ft</p>
+                          </div>
+                        )}
+                        {propertyDetails.details?.year_built && (
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700">Year Built</label>
+                            <p className="text-sm text-gray-900">{propertyDetails.details.year_built}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Inquiry Form */}
+                  <div className="border-t border-gray-200 pt-6">
+                    <h3 className="text-lg font-medium text-gray-900 mb-4">Inquiry Form</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Name *</label>
+                        <input
+                          type="text"
+                          placeholder="Your full name"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Email *</label>
+                        <input
+                          type="email"
+                          placeholder="your.email@example.com"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Phone</label>
+                        <input
+                          type="tel"
+                          placeholder="(555) 123-4567"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Best Time to Contact</label>
+                        <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                          <option value="">Select time</option>
+                          <option value="morning">Morning</option>
+                          <option value="afternoon">Afternoon</option>
+                          <option value="evening">Evening</option>
+                        </select>
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Message</label>
+                        <textarea
+                          rows={4}
+                          placeholder="Tell us about your interest in this property..."
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Modal Actions */}
+                  <div className="flex items-center justify-end space-x-3 pt-6 border-t border-gray-200">
+                    <button
+                      onClick={() => setShowInquireModal(false)}
+                      className="px-6 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={() => {
+                        // Handle inquiry submission
+                        alert('Inquiry submitted successfully!');
+                        setShowInquireModal(false);
+                      }}
+                      className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                    >
+                      Submit Inquiry
+                    </button>
+                  </div>
+                </>
+              ) : null}
             </div>
           </div>
         </div>
