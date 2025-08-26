@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Search, Filter, MapPin, Bed, Bath, Square, Heart, Phone, Mail, ChevronRight, X } from 'lucide-react';
+import { Search, Filter, MapPin, Bed, Bath, Square, Heart, ChevronRight, X } from 'lucide-react';
 import { ClientPropertyAPI, ClientPropertyApiResponse } from '../types';
 import { BASE_URL } from '../config';
 
@@ -21,11 +21,7 @@ const Properties: React.FC<PropertiesProps> = ({ onToggleFavorite }) => {
   });
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedProperty, setSelectedProperty] = useState<ClientPropertyAPI | null>(null);
-  const [showInquireModal, setShowInquireModal] = useState(false);
-  const [inquireProperty, setInquireProperty] = useState<ClientPropertyAPI | null>(null);
-  const [propertyDetails, setPropertyDetails] = useState<any>(null);
-  const [loadingDetails, setLoadingDetails] = useState(false);
-  const [detailsError, setDetailsError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState('overview');
 
   // Fetch properties from API with proper authentication
   const fetchProperties = async (cursor?: string) => {
@@ -112,49 +108,7 @@ const Properties: React.FC<PropertiesProps> = ({ onToggleFavorite }) => {
   const handleViewDetails = (property: ClientPropertyAPI) => {
     setSelectedProperty(property);
     setShowDetailsModal(true);
-  };
-
-  // Handle inquire
-  const handleInquire = async (property: ClientPropertyAPI) => {
-    setInquireProperty(property);
-    setShowInquireModal(true);
-    await fetchPropertyDetails(property._id);
-  };
-
-  // Fetch property details from API
-  const fetchPropertyDetails = async (propertyId: string) => {
-    try {
-      setLoadingDetails(true);
-      setDetailsError(null);
-      
-      const url = `${BASE_URL}/api/property-details/client/${propertyId}`;
-      
-      const response = await fetch(url, {
-        method: 'GET',
-        credentials: 'include', // Include cookies
-        headers: {
-          'Content-Type': 'application/json',
-          'Host': window.location.hostname, // Include host header
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: Failed to fetch property details`);
-      }
-
-      const data = await response.json();
-      
-      if (data.success) {
-        setPropertyDetails(data.data);
-      } else {
-        throw new Error(data.message || 'Failed to fetch property details');
-      }
-    } catch (err) {
-      console.error('Error fetching property details:', err);
-      setDetailsError(err instanceof Error ? err.message : 'Failed to fetch property details');
-    } finally {
-      setLoadingDetails(false);
-    }
+    setActiveTab('overview'); // Reset to overview tab
   };
 
   // Get status color
@@ -371,12 +325,6 @@ const Properties: React.FC<PropertiesProps> = ({ onToggleFavorite }) => {
               <div className="border-t pt-4">
                 <div className="flex space-x-3">
                   <button
-                    onClick={() => handleInquire(property)}
-                    className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
-                  >
-                    Inquire
-                  </button>
-                  <button
                     onClick={() => handleViewDetails(property)}
                     className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
                   >
@@ -422,10 +370,10 @@ const Properties: React.FC<PropertiesProps> = ({ onToggleFavorite }) => {
         </div>
       )}
 
-      {/* Property Details Modal */}
+      {/* Property Details Modal with Tabs */}
       {showDetailsModal && selectedProperty && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-lg max-w-6xl w-full max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-6 border-b border-gray-200">
               <h2 className="text-xl font-semibold text-gray-900">Property Details</h2>
               <button
@@ -436,185 +384,493 @@ const Properties: React.FC<PropertiesProps> = ({ onToggleFavorite }) => {
               </button>
             </div>
 
-            <div className="p-6 space-y-6">
-              {/* Property Image */}
-              <div className="relative">
-                <img
-                  src={selectedProperty.media?.primary_photo || 'https://images.pexels.com/photos/1396122/pexels-photo-1396122.jpeg?auto=compress&cs=tinysrgb&w=600'}
-                  alt={selectedProperty.name}
-                  className="w-full h-64 object-cover rounded-lg"
-                />
-                <div className="absolute top-4 right-4">
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(selectedProperty.status)}`}>
-                    {selectedProperty.status}
-                  </span>
-                </div>
-                {selectedProperty.flags?.is_new_listing && (
-                  <div className="absolute top-4 left-4">
-                    <span className="px-2 py-1 bg-red-500 text-white text-sm font-medium rounded-full">
-                      New
-                    </span>
+            <div className="p-6">
+              {/* Property Header */}
+              <div className="mb-6">
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <h3 className="text-2xl font-bold text-gray-900">{selectedProperty.name}</h3>
+                    <p className="text-lg text-gray-600">{selectedProperty.fullAddress}</p>
                   </div>
-                )}
-                {selectedProperty.flags?.is_price_reduced && (
-                  <div className="absolute top-4 left-20">
-                    <span className="px-2 py-1 bg-orange-500 text-white text-sm font-medium rounded-full">
-                      Price Reduced
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              {/* Basic Information */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">Basic Information</h3>
-                  <div className="space-y-3">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Property Name</label>
-                      <p className="text-sm text-gray-900">{selectedProperty.name}</p>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Price</label>
-                      <p className="text-lg font-bold text-gray-900">{formatPrice(selectedProperty.price)}</p>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Property Type</label>
-                      <p className="text-sm text-gray-900 capitalize">{selectedProperty.property_type.replace('_', ' ')}</p>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Source Type</label>
-                      <p className="text-sm text-gray-900 uppercase">{selectedProperty.source_type}</p>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Listed Date</label>
-                      <p className="text-sm text-gray-900">{new Date(selectedProperty.listed_date).toLocaleDateString()}</p>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Created</label>
-                      <p className="text-sm text-gray-900">{new Date(selectedProperty.createdAt).toLocaleDateString()}</p>
+                  <div className="text-right">
+                    <div className="text-3xl font-bold text-blue-600">{formatPrice(selectedProperty.price)}</div>
+                    <div className={`inline-block px-3 py-1 rounded-full text-sm font-medium mt-2 ${getStatusColor(selectedProperty.status)}`}>
+                      {selectedProperty.status}
                     </div>
                   </div>
                 </div>
-
-                <div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">Address</h3>
-                  <div className="space-y-3">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Full Address</label>
-                      <p className="text-sm text-gray-900">{selectedProperty.fullAddress}</p>
+                
+                {/* Property Image */}
+                <div className="relative h-64 rounded-lg overflow-hidden">
+                  <img
+                    src={selectedProperty.media?.primary_photo || 'https://images.pexels.com/photos/1396122/pexels-photo-1396122.jpeg?auto=compress&cs=tinysrgb&w=600'}
+                    alt={selectedProperty.name}
+                    className="w-full h-full object-cover"
+                  />
+                  {selectedProperty.flags?.is_new_listing && (
+                    <div className="absolute top-4 left-4">
+                      <span className="px-2 py-1 bg-red-500 text-white text-sm font-medium rounded-full">
+                        New
+                      </span>
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Street</label>
-                      <p className="text-sm text-gray-900">{selectedProperty.address.street}</p>
+                  )}
+                  {selectedProperty.flags?.is_price_reduced && (
+                    <div className="absolute top-4 left-20">
+                      <span className="px-2 py-1 bg-orange-500 text-white text-sm font-medium rounded-full">
+                        Price Reduced
+                      </span>
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">City</label>
-                      <p className="text-sm text-gray-900">{selectedProperty.address.city}</p>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">State</label>
-                      <p className="text-sm text-gray-900">{selectedProperty.address.state}</p>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Postal Code</label>
-                      <p className="text-sm text-gray-900">{selectedProperty.address.postal_code}</p>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Country</label>
-                      <p className="text-sm text-gray-900">{selectedProperty.address.country}</p>
-                    </div>
-                  </div>
+                  )}
                 </div>
               </div>
 
-              {/* Property Details */}
-              {selectedProperty.details && (
-                <div className="border-t border-gray-200 pt-6">
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">Property Details</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Bedrooms</label>
-                      <p className="text-sm text-gray-900">{selectedProperty.details.beds || 'N/A'}</p>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Bathrooms</label>
-                      <p className="text-sm text-gray-900">{selectedProperty.details.baths || 'N/A'}</p>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Full Bathrooms</label>
-                      <p className="text-sm text-gray-900">{selectedProperty.details.baths_full || 'N/A'}</p>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Half Bathrooms</label>
-                      <p className="text-sm text-gray-900">{selectedProperty.details.baths_half || 'N/A'}</p>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Square Feet</label>
-                      <p className="text-sm text-gray-900">{selectedProperty.details.sqft ? `${selectedProperty.details.sqft.toLocaleString()} sq ft` : 'N/A'}</p>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Lot Square Feet</label>
-                      <p className="text-sm text-gray-900">{selectedProperty.details.lot_sqft ? `${selectedProperty.details.lot_sqft.toLocaleString()} sq ft` : 'N/A'}</p>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Year Built</label>
-                      <p className="text-sm text-gray-900">{selectedProperty.details.year_built || 'N/A'}</p>
-                    </div>
-                  </div>
+              {/* Tabbed Content */}
+              <div className="border-t border-gray-200 pt-6">
+                <div className="flex space-x-1 border-b border-gray-200 mb-6">
+                  <button
+                    onClick={() => setActiveTab('overview')}
+                    className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
+                      activeTab === 'overview'
+                        ? 'bg-blue-50 text-blue-700 border-b-2 border-blue-700'
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    Overview
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('details')}
+                    className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
+                      activeTab === 'details'
+                        ? 'bg-blue-50 text-blue-700 border-b-2 border-blue-700'
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    Property Details
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('location')}
+                    className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
+                      activeTab === 'location'
+                        ? 'bg-blue-50 text-blue-700 border-b-2 border-blue-700'
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    Location & Schools
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('financial')}
+                    className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
+                      activeTab === 'financial'
+                        ? 'bg-blue-50 text-blue-700 border-b-2 border-blue-700'
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    Financial & History
+                  </button>
                 </div>
-              )}
 
-              {/* Location Coordinates */}
-              {selectedProperty.location && (
-                <div className="border-t border-gray-200 pt-6">
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">Location Coordinates</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Latitude</label>
-                      <p className="text-sm text-gray-900">{selectedProperty.location.latitude}</p>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Longitude</label>
-                      <p className="text-sm text-gray-900">{selectedProperty.location.longitude}</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Media Information */}
-              {selectedProperty.media && (
-                <div className="border-t border-gray-200 pt-6">
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">Media</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Primary Photo</label>
-                      <p className="text-sm text-gray-900 break-all">{selectedProperty.media.primary_photo || 'N/A'}</p>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Photo Count</label>
-                      <p className="text-sm text-gray-900">{selectedProperty.media.photo_count}</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Property Flags */}
-              {selectedProperty.flags && (
-                <div className="border-t border-gray-200 pt-6">
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">Property Flags</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {Object.entries(selectedProperty.flags).map(([key, value]) => (
-                      <div key={key} className="flex items-center space-x-3">
-                        <div className={`w-3 h-3 rounded-full ${value ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-                        <span className="text-sm text-gray-700 capitalize">
-                          {key.replace(/_/g, ' ')}
-                        </span>
+                {/* Tab Content */}
+                <div className="min-h-[400px]">
+                  {/* Overview Tab */}
+                  {activeTab === 'overview' && (
+                    <div className="space-y-6">
+                      {/* Key Information */}
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {selectedProperty.details?.beds && (
+                          <div className="bg-gray-50 p-4 rounded-lg">
+                            <div className="text-2xl font-bold text-blue-600">{selectedProperty.details.beds}</div>
+                            <div className="text-sm text-gray-600">Bedrooms</div>
+                          </div>
+                        )}
+                        {selectedProperty.details?.baths && (
+                          <div className="bg-gray-50 p-4 rounded-lg">
+                            <div className="text-2xl font-bold text-blue-600">{selectedProperty.details.baths}</div>
+                            <div className="text-sm text-gray-600">Bathrooms</div>
+                          </div>
+                        )}
+                        {selectedProperty.details?.sqft && (
+                          <div className="bg-gray-50 p-4 rounded-lg">
+                            <div className="text-2xl font-bold text-blue-600">{selectedProperty.details.sqft.toLocaleString()}</div>
+                            <div className="text-sm text-gray-600">Square Feet</div>
+                          </div>
+                        )}
+                        {selectedProperty.details?.lot_sqft && (
+                          <div className="bg-gray-50 p-4 rounded-lg">
+                            <div className="text-2xl font-bold text-blue-600">{selectedProperty.details.lot_sqft.toLocaleString()}</div>
+                            <div className="text-sm text-gray-600">Lot Size (sq ft)</div>
+                          </div>
+                        )}
+                        {selectedProperty.details?.year_built && (
+                          <div className="bg-gray-50 p-4 rounded-lg">
+                            <div className="text-2xl font-bold text-blue-600">{selectedProperty.details.year_built}</div>
+                            <div className="text-sm text-gray-600">Year Built</div>
+                          </div>
+                        )}
+                        {selectedProperty.details?.sub_type && (
+                          <div className="bg-gray-50 p-4 rounded-lg">
+                            <div className="text-lg font-semibold text-gray-800 capitalize">
+                              {selectedProperty.details.sub_type.replace('_', ' ')}
+                            </div>
+                            <div className="text-sm text-gray-600">Property Sub Type</div>
+                          </div>
+                        )}
                       </div>
-                    ))}
-                  </div>
+
+                      {/* Property Flags */}
+                      {selectedProperty.flags && (
+                        <div>
+                          <h4 className="text-lg font-semibold text-gray-900 mb-3">Property Features</h4>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            {Object.entries(selectedProperty.flags).map(([key, value]) => (
+                              <div key={key} className="flex items-center space-x-2">
+                                <div className={`w-3 h-3 rounded-full ${value ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                                <span className="text-sm text-gray-700 capitalize">
+                                  {key.replace(/_/g, ' ')}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Property Details Tab */}
+                  {activeTab === 'details' && (
+                    <div className="space-y-6">
+                      {/* Basic Details */}
+                      <div>
+                        <h4 className="text-lg font-semibold text-gray-900 mb-4">Basic Details</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {selectedProperty.details?.beds && (
+                            <div className="flex justify-between py-2 border-b border-gray-100">
+                              <span className="text-gray-600">Bedrooms</span>
+                              <span className="font-medium">{selectedProperty.details.beds}</span>
+                            </div>
+                          )}
+                          {selectedProperty.details?.baths && (
+                            <div className="flex justify-between py-2 border-b border-gray-100">
+                              <span className="text-gray-600">Bathrooms</span>
+                              <span className="font-medium">{selectedProperty.details.baths}</span>
+                            </div>
+                          )}
+                          {selectedProperty.details?.baths_full && (
+                            <div className="flex justify-between py-2 border-b border-gray-100">
+                              <span className="text-gray-600">Full Bathrooms</span>
+                              <span className="font-medium">{selectedProperty.details.baths_full}</span>
+                            </div>
+                          )}
+                          {selectedProperty.details?.baths_half && (
+                            <div className="flex justify-between py-2 border-b border-gray-100">
+                              <span className="text-gray-600">Half Bathrooms</span>
+                              <span className="font-medium">{selectedProperty.details.baths_half}</span>
+                            </div>
+                          )}
+                          {selectedProperty.details?.sqft && (
+                            <div className="flex justify-between py-2 border-b border-gray-100">
+                              <span className="text-gray-600">Square Feet</span>
+                              <span className="font-medium">{selectedProperty.details.sqft.toLocaleString()}</span>
+                            </div>
+                          )}
+                          {selectedProperty.details?.lot_sqft && (
+                            <div className="flex justify-between py-2 border-b border-gray-100">
+                              <span className="text-gray-600">Lot Size</span>
+                              <span className="font-medium">{selectedProperty.details.lot_sqft.toLocaleString()} sq ft</span>
+                            </div>
+                          )}
+                          {selectedProperty.details?.year_built && (
+                            <div className="flex justify-between py-2 border-b border-gray-100">
+                              <span className="text-gray-600">Year Built</span>
+                              <span className="font-medium">{selectedProperty.details.year_built}</span>
+                            </div>
+                          )}
+                          {selectedProperty.details?.stories && (
+                            <div className="flex justify-between py-2 border-b border-gray-100">
+                              <span className="text-gray-600">Stories</span>
+                              <span className="font-medium">{selectedProperty.details.stories}</span>
+                            </div>
+                          )}
+                          {selectedProperty.details?.units && (
+                            <div className="flex justify-between py-2 border-b border-gray-100">
+                              <span className="text-gray-600">Units</span>
+                              <span className="font-medium">{selectedProperty.details.units}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Media Information */}
+                      {selectedProperty.media && (
+                        <div>
+                          <h4 className="text-lg font-semibold text-gray-900 mb-4">Media</h4>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {selectedProperty.media.photo_count && (
+                              <div className="flex justify-between py-2 border-b border-gray-100">
+                                <span className="text-gray-600">Photo Count</span>
+                                <span className="font-medium">{selectedProperty.media.photo_count}</span>
+                              </div>
+                            )}
+                            {selectedProperty.media.virtual_tours !== undefined && (
+                              <div className="flex justify-between py-2 border-b border-gray-100">
+                                <span className="text-gray-600">Virtual Tours</span>
+                                <span className="font-medium">{selectedProperty.media.virtual_tours ? 'Available' : 'Not Available'}</span>
+                              </div>
+                            )}
+                            {selectedProperty.media.matterport !== undefined && (
+                              <div className="flex justify-between py-2 border-b border-gray-100">
+                                <span className="text-gray-600">Matterport</span>
+                                <span className="font-medium">{selectedProperty.media.matterport ? 'Available' : 'Not Available'}</span>
+                              </div>
+                            )}
+                            {selectedProperty.media.videos !== undefined && (
+                              <div className="flex justify-between py-2 border-b border-gray-100">
+                                <span className="text-gray-600">Videos</span>
+                                <span className="font-medium">{selectedProperty.media.videos ? 'Available' : 'Not Available'}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Location & Schools Tab */}
+                  {activeTab === 'location' && (
+                    <div className="space-y-6">
+                      {/* Address Information */}
+                      {selectedProperty.location?.address && (
+                        <div>
+                          <h4 className="text-lg font-semibold text-gray-900 mb-4">Address</h4>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {selectedProperty.location.address.line && (
+                              <div className="flex justify-between py-2 border-b border-gray-100">
+                                <span className="text-gray-600">Street Address</span>
+                                <span className="font-medium">{selectedProperty.location.address.line}</span>
+                              </div>
+                            )}
+                            {selectedProperty.location.address.city && (
+                              <div className="flex justify-between py-2 border-b border-gray-100">
+                                <span className="text-gray-600">City</span>
+                                <span className="font-medium">{selectedProperty.location.address.city}</span>
+                              </div>
+                            )}
+                            {selectedProperty.location.address.state && (
+                              <div className="flex justify-between py-2 border-b border-gray-100">
+                                <span className="text-gray-600">State</span>
+                                <span className="font-medium">{selectedProperty.location.address.state}</span>
+                              </div>
+                            )}
+                            {selectedProperty.location.address.postal_code && (
+                              <div className="flex justify-between py-2 border-b border-gray-100">
+                                <span className="text-gray-600">Postal Code</span>
+                                <span className="font-medium">{selectedProperty.location.address.postal_code}</span>
+                              </div>
+                            )}
+                            {selectedProperty.location.county?.name && (
+                              <div className="flex justify-between py-2 border-b border-gray-100">
+                                <span className="text-gray-600">County</span>
+                                <span className="font-medium">{selectedProperty.location.county.name}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Neighborhood Information */}
+                      {selectedProperty.location?.neighborhoods && selectedProperty.location.neighborhoods.length > 0 && (
+                        <div>
+                          <h4 className="text-lg font-semibold text-gray-900 mb-4">Neighborhoods</h4>
+                          <div className="space-y-3">
+                            {selectedProperty.location.neighborhoods.map((neighborhood, index) => (
+                              <div key={index} className="bg-gray-50 p-4 rounded-lg">
+                                <div className="font-medium text-gray-900">{neighborhood.name}</div>
+                                <div className="text-sm text-gray-600">{neighborhood.city} • {neighborhood.level}</div>
+                                {neighborhood.geo_statistics?.housing_market && (
+                                  <div className="mt-2 text-sm text-gray-600">
+                                    <span className="font-medium">Median Price: </span>
+                                    {neighborhood.geo_statistics.housing_market.median_listing_price ? 
+                                      formatPrice(neighborhood.geo_statistics.housing_market.median_listing_price) : 'N/A'}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Schools */}
+                      {selectedProperty.schools && (
+                        <div>
+                          <h4 className="text-lg font-semibold text-gray-900 mb-4">Schools</h4>
+                          
+                          {/* Assigned Schools */}
+                          {selectedProperty.schools.assigned && selectedProperty.schools.assigned.length > 0 && (
+                            <div className="mb-4">
+                              <h5 className="text-md font-medium text-gray-800 mb-2">Assigned Schools</h5>
+                              <div className="space-y-2">
+                                {selectedProperty.schools.assigned.map((school, index) => (
+                                  <div key={index} className="flex justify-between items-center py-2 border-b border-gray-100">
+                                    <div>
+                                      <div className="font-medium text-gray-900">{school.name || 'School Name N/A'}</div>
+                                      <div className="text-sm text-gray-600">{school.district?.name}</div>
+                                    </div>
+                                    {school.rating && (
+                                      <div className="text-sm text-gray-600">Rating: {school.rating}/10</div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Nearby Schools */}
+                          {selectedProperty.schools.nearby && selectedProperty.schools.nearby.length > 0 && (
+                            <div>
+                              <h5 className="text-md font-medium text-gray-800 mb-2">Nearby Schools</h5>
+                              <div className="space-y-2">
+                                {selectedProperty.schools.nearby.slice(0, 5).map((school, index) => (
+                                  <div key={index} className="flex justify-between items-center py-2 border-b border-gray-100">
+                                    <div>
+                                      <div className="font-medium text-gray-900">{school.name}</div>
+                                      <div className="text-sm text-gray-600">
+                                        {school.district?.name} • {school.distance_in_miles} miles away
+                                      </div>
+                                    </div>
+                                    <div className="text-right">
+                                      {school.rating && (
+                                        <div className="text-sm text-gray-600">Rating: {school.rating}/10</div>
+                                      )}
+                                      <div className="text-xs text-gray-500">{school.education_levels?.join(', ')}</div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Financial & History Tab */}
+                  {activeTab === 'financial' && (
+                    <div className="space-y-6">
+                      {/* Pricing Information */}
+                      {selectedProperty.pricing && (
+                        <div>
+                          <h4 className="text-lg font-semibold text-gray-900 mb-4">Pricing</h4>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {selectedProperty.pricing.list_price && (
+                              <div className="flex justify-between py-2 border-b border-gray-100">
+                                <span className="text-gray-600">List Price</span>
+                                <span className="font-medium">{formatPrice(selectedProperty.pricing.list_price)}</span>
+                              </div>
+                            )}
+                            {selectedProperty.pricing.price_per_sqft && (
+                              <div className="flex justify-between py-2 border-b border-gray-100">
+                                <span className="text-gray-600">Price per Sq Ft</span>
+                                <span className="font-medium">${selectedProperty.pricing.price_per_sqft}</span>
+                              </div>
+                            )}
+                            {selectedProperty.pricing.last_sold_price && (
+                              <div className="flex justify-between py-2 border-b border-gray-100">
+                                <span className="text-gray-600">Last Sold Price</span>
+                                <span className="font-medium">{formatPrice(selectedProperty.pricing.last_sold_price)}</span>
+                              </div>
+                            )}
+                            {selectedProperty.pricing.last_sold_date && (
+                              <div className="flex justify-between py-2 border-b border-gray-100">
+                                <span className="text-gray-600">Last Sold Date</span>
+                                <span className="font-medium">
+                                  {new Date(selectedProperty.pricing.last_sold_date).toLocaleDateString()}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Property History */}
+                      {selectedProperty.property_history && selectedProperty.property_history.length > 0 && (
+                        <div>
+                          <h4 className="text-lg font-semibold text-gray-900 mb-4">Property History</h4>
+                          <div className="space-y-3">
+                            {selectedProperty.property_history.slice(0, 10).map((history, index) => (
+                              <div key={index} className="flex justify-between items-center py-3 border-b border-gray-100">
+                                <div>
+                                  <div className="font-medium text-gray-900">{history.event_name}</div>
+                                  <div className="text-sm text-gray-600">
+                                    {new Date(history.date).toLocaleDateString()} • {history.source_name}
+                                  </div>
+                                </div>
+                                {history.price && (
+                                  <div className="text-right">
+                                    <div className="font-medium text-gray-900">{formatPrice(history.price)}</div>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Tax History */}
+                      {selectedProperty.tax_history && selectedProperty.tax_history.length > 0 && (
+                        <div>
+                          <h4 className="text-lg font-semibold text-gray-900 mb-4">Tax History</h4>
+                          <div className="space-y-2">
+                            {selectedProperty.tax_history.slice(0, 5).map((tax, index) => (
+                              <div key={index} className="flex justify-between items-center py-2 border-b border-gray-100">
+                                <div>
+                                  <div className="font-medium text-gray-900">{tax.year}</div>
+                                  <div className="text-sm text-gray-600">
+                                    Assessment: {formatPrice(tax.assessment?.total || 0)}
+                                  </div>
+                                </div>
+                                <div className="text-right">
+                                <div className="font-medium text-gray-900">{formatPrice(tax.tax || 0)}</div>
+                                  <div className="text-sm text-gray-600">Annual Tax</div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Property Estimates */}
+                      {selectedProperty.estimates?.current_values && selectedProperty.estimates?.current_values.length > 0 && (
+                        <div>
+                          <h4 className="text-lg font-semibold text-gray-900 mb-4">Property Estimates</h4>
+                          <div className="space-y-3">
+                            {selectedProperty.estimates.current_values.map((estimate, index) => (
+                              <div key={index} className="bg-gray-50 p-4 rounded-lg">
+                                <div className="font-medium text-gray-900 mb-2">{estimate.source.name}</div>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                                  <div>
+                                    <span className="text-gray-600">Estimate: </span>
+                                    <span className="font-medium">{formatPrice(estimate.estimate)}</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-gray-600">Low: </span>
+                                    <span className="font-medium">{formatPrice(estimate.estimate_low)}</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-gray-600">High: </span>
+                                    <span className="font-medium">{formatPrice(estimate.estimate_high)}</span>
+                                  </div>
+                                </div>
+                                <div className="text-xs text-gray-500 mt-2">
+                                  {new Date(estimate.date).toLocaleDateString()}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
 
               {/* Modal Actions */}
               <div className="flex items-center justify-end space-x-3 pt-6 border-t border-gray-200">
@@ -625,195 +881,6 @@ const Properties: React.FC<PropertiesProps> = ({ onToggleFavorite }) => {
                   Close
                 </button>
               </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Inquire Modal with Property Details */}
-      {showInquireModal && inquireProperty && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-6 border-b border-gray-200">
-              <h2 className="text-xl font-semibold text-gray-900">Property Inquiry - {inquireProperty.name}</h2>
-              <button
-                onClick={() => setShowInquireModal(false)}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-
-            <div className="p-6 space-y-6">
-              {loadingDetails ? (
-                <div className="text-center py-12">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                  <p className="text-gray-600">Loading property details...</p>
-                </div>
-              ) : detailsError ? (
-                <div className="text-center py-12">
-                  <div className="text-red-500 mb-4">
-                    <div className="text-6xl">⚠️</div>
-                  </div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">Error loading details</h3>
-                  <p className="text-gray-600">{detailsError}</p>
-                  <button 
-                    onClick={() => fetchPropertyDetails(inquireProperty._id)} 
-                    className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                  >
-                    Try Again
-                  </button>
-                </div>
-              ) : propertyDetails ? (
-                <>
-                  {/* Property Image */}
-                  <div className="relative">
-                    <img
-                      src={propertyDetails.media?.primary_photo || inquireProperty.media?.primary_photo || 'https://images.pexels.com/photos/1396122/pexels-photo-1396122.jpeg?auto=compress&cs=tinysrgb&w=600'}
-                      alt={propertyDetails.name}
-                      className="w-full h-64 object-cover rounded-lg"
-                    />
-                    <div className="absolute top-4 right-4">
-                      <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(inquireProperty.status)}`}>
-                        {inquireProperty.status}
-                      </span>
-                    </div>
-                    {propertyDetails.flags?.is_new_listing && (
-                      <div className="absolute top-4 left-4">
-                        <span className="px-2 py-1 bg-red-500 text-white text-sm font-medium rounded-full">
-                          New
-                        </span>
-                      </div>
-                    )}
-                    {propertyDetails.flags?.is_price_reduced && (
-                      <div className="absolute top-4 left-20">
-                        <span className="px-2 py-1 bg-orange-500 text-white text-sm font-medium rounded-full">
-                          Price Reduced
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Property Information */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <h3 className="text-lg font-medium text-gray-900 mb-4">Property Information</h3>
-                      <div className="space-y-3">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700">Property Name</label>
-                          <p className="text-sm text-gray-900">{propertyDetails.name}</p>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700">Price</label>
-                          <p className="text-lg font-bold text-gray-900">{formatPrice(propertyDetails.pricing?.list_price || inquireProperty.price)}</p>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700">Full Address</label>
-                          <p className="text-sm text-gray-900">{propertyDetails.fullAddress}</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div>
-                      <h3 className="text-lg font-medium text-gray-900 mb-4">Property Details</h3>
-                      <div className="space-y-3">
-                        {propertyDetails.details?.beds && (
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700">Bedrooms</label>
-                            <p className="text-sm text-gray-900">{propertyDetails.details.beds}</p>
-                          </div>
-                        )}
-                        {propertyDetails.details?.baths && (
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700">Bathrooms</label>
-                            <p className="text-sm text-gray-900">{propertyDetails.details.baths}</p>
-                          </div>
-                        )}
-                        {propertyDetails.details?.sqft && (
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700">Square Feet</label>
-                            <p className="text-sm text-gray-900">{propertyDetails.details.sqft.toLocaleString()} sq ft</p>
-                          </div>
-                        )}
-                        {propertyDetails.details?.year_built && (
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700">Year Built</label>
-                            <p className="text-sm text-gray-900">{propertyDetails.details.year_built}</p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Inquiry Form */}
-                  <div className="border-t border-gray-200 pt-6">
-                    <h3 className="text-lg font-medium text-gray-900 mb-4">Inquiry Form</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Name *</label>
-                        <input
-                          type="text"
-                          placeholder="Your full name"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Email *</label>
-                        <input
-                          type="email"
-                          placeholder="your.email@example.com"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Phone</label>
-                        <input
-                          type="tel"
-                          placeholder="(555) 123-4567"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Best Time to Contact</label>
-                        <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                          <option value="">Select time</option>
-                          <option value="morning">Morning</option>
-                          <option value="afternoon">Afternoon</option>
-                          <option value="evening">Evening</option>
-                        </select>
-                      </div>
-                      <div className="md:col-span-2">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Message</label>
-                        <textarea
-                          rows={4}
-                          placeholder="Tell us about your interest in this property..."
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Modal Actions */}
-                  <div className="flex items-center justify-end space-x-3 pt-6 border-t border-gray-200">
-                    <button
-                      onClick={() => setShowInquireModal(false)}
-                      className="px-6 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={() => {
-                        // Handle inquiry submission
-                        alert('Inquiry submitted successfully!');
-                        setShowInquireModal(false);
-                      }}
-                      className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                    >
-                      Submit Inquiry
-                    </button>
-                  </div>
-                </>
-              ) : null}
             </div>
           </div>
         </div>

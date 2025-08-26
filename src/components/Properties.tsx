@@ -21,6 +21,7 @@ const Properties: React.FC<PropertiesProps> = ({ onToggleFavorite }) => {
   });
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedProperty, setSelectedProperty] = useState<ClientPropertyAPI | null>(null);
+  const [activeTab, setActiveTab] = useState('overview');
 
   // Fetch properties from API with proper authentication
   const fetchProperties = async (cursor?: string) => {
@@ -321,19 +322,21 @@ const Properties: React.FC<PropertiesProps> = ({ onToggleFavorite }) => {
 
               {/* Action Buttons */}
               <div className="border-t pt-4">
-                <div className="flex space-x-3">
-                  <button
-                    // onClick={() => handleInquire(property)}
-                    className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
-                  >
-                    Inquire
-                  </button>
+                <div className="flex justify-between items-center">
                   <button
                     onClick={() => handleViewDetails(property)}
-                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
                   >
                     View Details
                   </button>
+                  <div className="flex space-x-2">
+                    <button className="p-2 text-gray-400 hover:text-blue-600 transition-colors">
+                      <Phone className="h-4 w-4" />
+                    </button>
+                    <button className="p-2 text-gray-400 hover:text-blue-600 transition-colors">
+                      <Mail className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
