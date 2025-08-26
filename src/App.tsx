@@ -208,10 +208,7 @@ function App() {
     // Check if it's a workspace subdomain (e.g., tenant-1.crm.localhost)
     if (parts.length >= 3) {
       const baseDomain = parts.slice(-2).join(".");
-      console.log("Base domain:", baseDomain);
-      const isWorkspace = baseDomain === "crm.localhost" && parts[0] !== "crm";
-      console.log("Is workspace subdomain:", isWorkspace);
-      return isWorkspace;
+      return baseDomain === "crm.localhost" && parts[0] !== "crm";
     }
     return false;
   };

@@ -1,5 +1,6 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
 import { ApiErrorResponse } from "../types";
+import { BASE_URL } from "../config";
 
 // Token getter is injected from the app (e.g., after store is created)
 let authTokenGetter: (() => string | undefined) | null = null;
@@ -9,7 +10,7 @@ export const setAuthTokenGetter = (getter: () => string | undefined): void => {
 
 // Configure axios defaults
 const api = axios.create({
-  baseURL: "http://localhost:3000",
+  baseURL: BASE_URL,
   withCredentials: true, // For HTTP-only cookies
 });
 
