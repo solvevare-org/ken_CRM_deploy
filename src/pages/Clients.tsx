@@ -3,6 +3,8 @@ import { Search, Plus, Phone, Mail, User, Calendar } from "lucide-react";
 import { UrlModal } from "../components/UrlModel";
 import AddClientModal from "../components/AddClientModal";
 import { BASE_URL } from "../config";
+import { useAppDispatch } from "@/store/hooks";
+import { fetchClients } from "@/store/slices/realtorSlice"; // Adjust the import path as needed
 
 interface Client {
   _id: string;
@@ -32,66 +34,48 @@ const Clients: React.FC = () => {
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const dispatch = useAppDispatch();
 
   // Fetch clients from API
-  const fetchClients = async () => {
+  const loadClients = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem("token");
-      
-      console.log("Fetching clients from:", `${BASE_URL}/api/clients`);
-      console.log("Token:", token ? "exists" : "missing");
-      console.log("Current origin:", window.location.origin);
-      console.log("Current hostname:", window.location.hostname);
-      
-      const response = await fetch(`${BASE_URL}/api/clients`, {
-        method: "GET",
-        credentials: "include",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-          "Origin": window.location.origin, // Add origin header for workspace detection
-        },
-      });
 
-      console.log("Response status:", response.status);
-      console.log("Response ok:", response.ok);
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.log("Error response:", errorText);
-        throw new Error(`HTTP ${response.status}: ${errorText}`);
-      }
+      // The fetchClients thunk returns an array of clients (Client[]).
+      const result = await dispatch(fetchClients()).unwrap();
 
-      const result = await response.json();
-      console.log("API result:", result);
-      
-      if (result.success && result.data) {
-        // Transform the data to match our interface
-        const transformedClients = result.data.map((client: any) => ({
-          _id: client._id,
-          id: client._id, // For backward compatibility
-          name: client.first_name && client.last_name 
-            ? `${client.first_name} ${client.last_name}`.trim()
-            : client.first_name || client.last_name || "Unknown",
+      if (Array.isArray(result) && result.length > 0) {
+        // Transform the data to match our local Client interface if needed
+        const transformedClients = result.map((client: any) => ({
+          _id: client._id || client.id,
+          id: client._id || client.id,
+          name:
+            client.first_name && client.last_name
+              ? `${client.first_name} ${client.last_name}`.trim()
+              : client.name ||
+                client.first_name ||
+                client.last_name ||
+                "Unknown",
           email: client.email || "",
           phone: client.phone || "",
-          type: "buyer", // Default since Auth model doesn't have client type
-          status: "potential", // Default since Auth model doesn't have client status
-          lastContact: new Date(client.updatedAt || client.createdAt),
-          totalValue: 0, // Default since Auth model doesn't have this
-          properties: [], // Default since Auth model doesn't have this
-          createdAt: client.createdAt,
-          user: client // Keep the original data
+          type: client.type || "buyer",
+          status: client.status || "potential",
+          lastContact: new Date(
+            client.updatedAt || client.createdAt || Date.now()
+          ),
+          totalValue: client.totalValue || 0,
+          properties: client.properties || [],
+          createdAt: client.createdAt || new Date().toISOString(),
+          user: client,
         }));
-        
+
         setClients(transformedClients);
       } else {
         setClients([]);
       }
-    } catch (error) {
-      console.error("Error fetching clients:", error);
-      setError(error instanceof Error ? error.message : "Failed to fetch clients");
+    } catch (err) {
+      console.error("Error fetching clients:", err);
+      setError(err instanceof Error ? err.message : "Failed to fetch clients");
       setClients([]);
     } finally {
       setLoading(false);
@@ -100,7 +84,8 @@ const Clients: React.FC = () => {
 
   // Fetch clients when component mounts
   useEffect(() => {
-    fetchClients();
+    loadClients();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const getStatusColor = (status: string) => {
@@ -150,7 +135,7 @@ const Clients: React.FC = () => {
           </p>
         </div>
         <button
-          onClick={() => setIsAddClientModalOpen(true)}
+          onClick={() => setIsModalOpen(true)}
           className="mt-4 sm:mt-0 inline-flex items-center px-3 lg:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm lg:text-base"
         >
           <Plus className="w-4 h-4 mr-2" />
@@ -187,18 +172,18 @@ const Clients: React.FC = () => {
         </div>
       </div>
 
-      {/* Error State */}
+      {/* Error State
       {error && (
         <div className="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
           <p>Error loading clients: {error}</p>
-          <button 
-            onClick={fetchClients} 
+          <button
+            onClick={loadClients}
             className="mt-2 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
           >
             Retry
           </button>
         </div>
-      )}
+      )} */}
 
       {/* Loading State */}
       {loading ? (
@@ -211,27 +196,122 @@ const Clients: React.FC = () => {
       ) : (
         /* Clients List */
         <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
-        {/* Mobile Cards View */}
-        <div className="block lg:hidden">
-          {filteredClients.map((client) => (
-            <div
-              key={client.id}
-              className="p-4 border-b border-gray-200 last:border-b-0"
-            >
-              <div className="flex items-start space-x-3">
-                <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center flex-shrink-0">
-                  <User className="w-5 h-5 text-gray-600" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h3 className="text-sm font-medium text-gray-900">
-                        {client.name}
-                      </h3>
-                      <p className="text-xs text-gray-500">{client.email}</p>
-                      <p className="text-xs text-gray-500">{client.phone}</p>
+          {/* Mobile Cards View */}
+          <div className="block lg:hidden">
+            {filteredClients.map((client) => (
+              <div
+                key={client.id}
+                className="p-4 border-b border-gray-200 last:border-b-0"
+              >
+                <div className="flex items-start space-x-3">
+                  <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center flex-shrink-0">
+                    <User className="w-5 h-5 text-gray-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h3 className="text-sm font-medium text-gray-900">
+                          {client.name}
+                        </h3>
+                        <p className="text-xs text-gray-500">{client.email}</p>
+                        <p className="text-xs text-gray-500">{client.phone}</p>
+                      </div>
+                      <div className="flex flex-col items-end space-y-1">
+                        <span
+                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getTypeColor(
+                            client.type
+                          )}`}
+                        >
+                          {client.type}
+                        </span>
+                        <span
+                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border ${getStatusColor(
+                            client.status
+                          )}`}
+                        >
+                          {client.status}
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex flex-col items-end space-y-1">
+                    <div className="mt-2 flex items-center justify-between">
+                      <span className="text-sm font-medium text-gray-900">
+                        {client.totalValue > 0
+                          ? `$${client.totalValue.toLocaleString()}`
+                          : "No transactions"}
+                      </span>
+                      <div className="flex space-x-2">
+                        <button className="text-blue-600 hover:text-blue-900">
+                          <Phone className="w-4 h-4" />
+                        </button>
+                        <button className="text-blue-600 hover:text-blue-900">
+                          <Mail className="w-4 h-4" />
+                        </button>
+                        <button className="text-blue-600 hover:text-blue-900">
+                          <Calendar className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop Table View */}
+          <div className="hidden lg:block overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Client
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Contact
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Type
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Total Value
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Last Contact
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {filteredClients.map((client) => (
+                  <tr key={client.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center">
+                          <User className="w-5 h-5 text-gray-600" />
+                        </div>
+                        <div className="ml-4">
+                          <div className="text-sm font-medium text-gray-900">
+                            {client.name}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {client.properties.length} properties
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">
+                        {client.email}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {client.phone}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <span
                         className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getTypeColor(
                           client.type
@@ -239,6 +319,8 @@ const Clients: React.FC = () => {
                       >
                         {client.type}
                       </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <span
                         className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border ${getStatusColor(
                           client.status
@@ -246,15 +328,16 @@ const Clients: React.FC = () => {
                       >
                         {client.status}
                       </span>
-                    </div>
-                  </div>
-                  <div className="mt-2 flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-900">
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {client.totalValue > 0
                         ? `$${client.totalValue.toLocaleString()}`
-                        : "No transactions"}
-                    </span>
-                    <div className="flex space-x-2">
+                        : "-"}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {client.lastContact.toLocaleDateString()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
                       <button className="text-blue-600 hover:text-blue-900">
                         <Phone className="w-4 h-4" />
                       </button>
@@ -264,106 +347,12 @@ const Clients: React.FC = () => {
                       <button className="text-blue-600 hover:text-blue-900">
                         <Calendar className="w-4 h-4" />
                       </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Desktop Table View */}
-        <div className="hidden lg:block overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Client
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Contact
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Type
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Total Value
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Last Contact
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredClients.map((client) => (
-                <tr key={client.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center">
-                        <User className="w-5 h-5 text-gray-600" />
-                      </div>
-                      <div className="ml-4">
-                        <div className="text-sm font-medium text-gray-900">
-                          {client.name}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          {client.properties.length} properties
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{client.email}</div>
-                    <div className="text-sm text-gray-500">{client.phone}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span
-                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getTypeColor(
-                        client.type
-                      )}`}
-                    >
-                      {client.type}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span
-                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border ${getStatusColor(
-                        client.status
-                      )}`}
-                    >
-                      {client.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {client.totalValue > 0
-                      ? `$${client.totalValue.toLocaleString()}`
-                      : "-"}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {client.lastContact.toLocaleDateString()}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                    <button className="text-blue-600 hover:text-blue-900">
-                      <Phone className="w-4 h-4" />
-                    </button>
-                    <button className="text-blue-600 hover:text-blue-900">
-                      <Mail className="w-4 h-4" />
-                    </button>
-                    <button className="text-blue-600 hover:text-blue-900">
-                      <Calendar className="w-4 h-4" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
@@ -386,7 +375,7 @@ const Clients: React.FC = () => {
         onClose={() => setIsAddClientModalOpen(false)}
         onInviteSuccess={() => {
           setIsAddClientModalOpen(false);
-          fetchClients(); // Refresh the clients list
+          loadClients(); // Refresh the clients list
         }}
       />
 

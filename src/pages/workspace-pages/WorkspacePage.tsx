@@ -20,6 +20,8 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
   getWorkspaces,
   selectCurrentWorkspace,
+  setWorkspaceType,
+  selectWorkspace,
 } from "@/store/slices/workspaceSlice";
 import { logout, selectUser } from "@/store/slices/authSlice";
 
@@ -37,6 +39,7 @@ export function WorkspacePage() {
   const dispatch = useAppDispatch();
   const user = useAppSelector(selectUser);
   const currentWorkspace = useAppSelector(selectCurrentWorkspace);
+  console.log("serserasfasdfas", user);
 
   const handleLogout = () => {
     dispatch(logout());
@@ -76,7 +79,8 @@ export function WorkspacePage() {
   }, []);
 
   // Navigate to workspace subdomain
-  const handleWorkspaceClick = (workspace: any) => {
+  const handleWorkspaceClick = async (workspace: any) => {
+    // Normalize workspace slug
     const slug = workspace.name
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
@@ -86,7 +90,18 @@ export function WorkspacePage() {
     const port = window.location.port ? `:${window.location.port}` : "";
     const targetUrl = `${protocol}//${slug}.${CRM_BASE_DOMAIN}${port}/realtor`;
 
-    window.location.assign(targetUrl);
+    try {
+      // Ask backend to select workspace (backend may set cookie/session for subdomain)
+      const res = await dispatch(selectWorkspace(workspace._id)).unwrap();
+      console.log("selectWorkspace response", res);
+
+      // On success, navigate to the workspace subdomain which will perform a full reload
+      window.location.assign(targetUrl);
+    } catch (err) {
+      console.error("Failed to select workspace before redirect:", err);
+      // Fallback: still redirect (user may rely on cookie-less auth) or show error
+      window.location.assign(targetUrl);
+    }
   };
 
   // Placeholder handlers for pending invites
@@ -216,7 +231,12 @@ export function WorkspacePage() {
                     <p className="text-gray-500 mb-4">
                       No personal workspace found
                     </p>
-                    <Button onClick={() => navigate("/workspace-details")}>
+                    <Button
+                      onClick={() => {
+                        navigate("/workspace-details");
+                        dispatch(setWorkspaceType("personal"));
+                      }}
+                    >
                       Create Personal Workspace
                     </Button>
                   </div>
@@ -226,7 +246,10 @@ export function WorkspacePage() {
                       <WorkspaceCard
                         key={ws.id}
                         workspace={ws}
-                        onClick={() => handleWorkspaceClick(ws)}
+                        onClick={() => {
+                          handleWorkspaceClick(ws);
+                          dispatch(setWorkspaceType("organization"));
+                        }}
                       />
                     ))}
                   </div>

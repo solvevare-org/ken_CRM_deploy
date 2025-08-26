@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { useAppDispatch } from "@/store/hooks";
+import { generateClientLink } from "@/store/slices/realtorSlice";
 
 interface UrlModalProps {
   isOpen: boolean;
@@ -18,10 +20,10 @@ export function UrlModal({
   description = "Copy the URL below to share",
 }: UrlModalProps) {
   const [copied, setCopied] = useState(false);
-
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(url);
+      const current = generatedUrl || url;
+      await navigator.clipboard.writeText(current);
       setCopied(true);
 
       // Reset copied state after 2 seconds
@@ -30,6 +32,11 @@ export function UrlModal({
       console.error("Failed to copy URL:", err);
     }
   };
+
+  const [generatedUrl, setGeneratedUrl] = useState<string>("");
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generateError, setGenerateError] = useState<string | null>(null);
+  const dispatch = useAppDispatch();
 
   if (!isOpen) return null;
 
@@ -74,10 +81,37 @@ export function UrlModal({
         <div className="flex items-center space-x-2 mb-6">
           <input
             type="text"
-            value={url}
+            value={generatedUrl || url}
             readOnly
             className="flex-1 px-3 py-2 border border-gray-300 rounded-md bg-gray-50 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
+          {/* Generate button - calls API to get a client signup URL */}
+          <button
+            onClick={async () => {
+              // prevent duplicate generation
+              if (isGenerating) return;
+              setGenerateError(null);
+              setIsGenerating(true);
+              try {
+                const result = await dispatch(
+                  generateClientLink() as any
+                ).unwrap();
+                // The thunk returns a string URL
+                setGeneratedUrl(result || "");
+              } catch (err: any) {
+                setGenerateError(
+                  err instanceof Error ? err.message : String(err)
+                );
+              } finally {
+                setIsGenerating(false);
+              }
+            }}
+            className="px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+            disabled={isGenerating}
+            title="Generate a client signup URL"
+          >
+            {isGenerating ? "Generating..." : "Generate"}
+          </button>
           <button
             onClick={handleCopy}
             className="px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
@@ -114,6 +148,9 @@ export function UrlModal({
           </button>
         </div>
 
+        {generateError && (
+          <div className="mb-4 text-sm text-red-600">{generateError}</div>
+        )}
         {/* Close Button */}
         <div className="flex justify-end">
           <button

@@ -40,6 +40,7 @@ export interface WorkspaceState {
   workspaces: Workspace[];
   currentWorkspace: Workspace | null;
   selectedWorkspace: SelectedWorkspaceResponse["workspace"] | null;
+  workspaceType: string | null;
   workspaceAvailability: WorkspaceAvailability;
   loading: {
     getWorkspaces: boolean;

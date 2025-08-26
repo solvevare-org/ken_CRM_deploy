@@ -1,18 +1,32 @@
-import React from 'react';
-import StatsCards from './StatsCards';
-import RecentActivity from './RecentActivity';
-import PropertyChart from './PropertyChart';
-import QuickActions from './QuickActions';
-import TopProperties from './TopProperties';
+import React, { useEffect } from "react";
+import StatsCards from "./StatsCards";
+import RecentActivity from "./RecentActivity";
+import PropertyChart from "./PropertyChart";
+import QuickActions from "./QuickActions";
+import TopProperties from "./TopProperties";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { getCurrentUser } from "@/store/slices/authSlice";
+import { selectUser } from "@/store/slices/authSlice";
 
 const Dashboard: React.FC = () => {
+  const dispatch = useAppDispatch();
+  const user = useAppSelector(selectUser);
+
+  useEffect(() => {
+    dispatch(getCurrentUser());
+  }, [dispatch]);
+
   return (
     <div className="p-4 lg:p-6 space-y-4 lg:space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-xl lg:text-2xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-sm lg:text-base text-gray-600 mt-1">Welcome back, Sarah! Here's your business overview.</p>
+          <h1 className="text-xl lg:text-2xl font-bold text-gray-900">
+            Dashboard
+          </h1>
+          <p className="text-sm lg:text-base text-gray-600 mt-1">
+            Welcome back, {user?.first_name}! Here's your business overview.
+          </p>
         </div>
         <div className="mt-4 sm:mt-0">
           <p className="text-sm text-gray-500">

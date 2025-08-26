@@ -1,4 +1,5 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import {
   BrowserRouter as Router,
   Routes,
@@ -38,6 +39,8 @@ import { WorkspaceEditPage } from "@/pages/workspace-pages/WorkspaceEditPage";
 
 // Components
 import { AuthRedirect } from "@/components/AuthRedirect";
+import { getCurrentUser as fetchCurrentUser } from "@/store/slices/authSlice";
+import { setUser } from "@/store/slices/authSlice";
 
 // Pages - Lead pages
 import Leads from "@/pages/lead-pages/Leads";
@@ -227,21 +230,53 @@ function App() {
   }: {
     children: React.ReactNode;
   }) => {
-    const token = localStorage.getItem("token");
-    console.log(
-      "Token in WorkspaceProtectedRoute:",
-      token ? "exists" : "missing"
+    const dispatch = useDispatch();
+    const isAuthenticated = useSelector(
+      (state: any) => state.auth?.isAuthenticated
     );
+    const token = useSelector((state: any) => state.auth?.token);
+    const [checking, setChecking] = useState(true);
+
+    useEffect(() => {
+      let mounted = true;
+
+      const hydrateFromServer = async () => {
+        // If we already have auth in redux (token or isAuthenticated), skip server check
+        if (token || isAuthenticated) {
+          if (mounted) setChecking(false);
+          return;
+        }
+
+        try {
+          // Try to fetch current user using cookie-based session (backend sets httpOnly cookie)
+          const resultAction: any = await dispatch(fetchCurrentUser() as any);
+          if (resultAction?.payload?.data?.auth) {
+            // populate main auth slice so UI sees user
+            dispatch(setUser(resultAction.payload.data.auth));
+          }
+        } catch (err) {
+          // no-op, not authenticated
+        } finally {
+          if (mounted) setChecking(false);
+        }
+      };
+
+      hydrateFromServer();
+      return () => {
+        mounted = false;
+      };
+    }, [dispatch, token, isAuthenticated]);
+
+    if (checking) return <div>Loading...</div>;
 
     // For development: allow access without token if on localhost
     const isDevelopment = window.location.hostname.includes("localhost");
 
-    if (!token && !isDevelopment) {
+    if (!token && !isAuthenticated && !isDevelopment) {
       return <LoginPage />;
     }
 
-    // If no token but in development, show a warning but allow access
-    if (!token && isDevelopment) {
+    if (!token && !isAuthenticated && isDevelopment) {
       console.warn(
         "Development mode: Accessing workspace without authentication token"
       );
