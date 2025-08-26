@@ -100,7 +100,7 @@ export const logout = createAsyncThunk<void, void, { rejectValue: string }>(
   async (_, { rejectWithValue }) => {
     try {
       // Call logout endpoint if you have one
-      await api.post(`${BASE_URL}/logout`);
+      await api.get(`${BASE_URL}/logout`);
     } catch (error) {
       console.log(error);
       const errorMessage = handleApiError(error);

@@ -15,8 +15,13 @@ export default defineConfig({
     },
   },
   server: {
-    host: 'local.test',
+    host: 'crm.vire-s.com',
     port: 5173,
+    // https: true, // Uncomment and configure as below if you need HTTPS
+    // https: {
+    //   key: fs.readFileSync('./cert/key.pem'),
+    //   cert: fs.readFileSync('./cert/cert.pem'),
+    // },
     strictPort: true,
     // Allow HMR to work when accessed via custom hosts like workspace1.crm.vire-s.com
     hmr: {

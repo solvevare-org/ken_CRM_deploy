@@ -717,12 +717,13 @@ export function WorkspaceDetailsPage() {
 
                       const token = localStorage.getItem("token");
                       const protocol = window.location.protocol;
+                      const host = `${slug}.${CRM_BASE_DOMAIN}`;
                       const port = window.location.port
                         ? `:${window.location.port}`
                         : "";
 
                       // Create workspace URL with token as query parameter for auto-login
-                      const workspaceUrl = `${protocol}//${slug}.${CRM_BASE_DOMAIN}${port}/?token=${encodeURIComponent(
+                      const workspaceUrl = `${protocol}//${host}${port}/?token=${encodeURIComponent(
                         token || ""
                       )}&redirect=dashboard`;
 
