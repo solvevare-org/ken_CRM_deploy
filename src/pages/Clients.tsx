@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from "react";
-import { Search, Plus, Phone, Mail, User, Calendar } from "lucide-react";
+import { Search, Plus, Phone, Mail, User, Calendar, Eye } from "lucide-react";
 import { UrlModal } from "../components/UrlModel";
 import AddClientModal from "../components/AddClientModal";
+import ClientDetailsModal from "@/components/realtor-dashboard/ClientDetailModel";
 import { BASE_URL } from "../config";
 import { useAppDispatch } from "@/store/hooks";
 import { fetchClients } from "@/store/slices/realtorSlice"; // Adjust the import path as needed
+import { toast } from "react-toastify";
 
-interface Client {
+export interface Client {
   _id: string;
+<<<<<<< Updated upstream
   id?: string; // For backward compatibility
   name: string;
   email: string;
@@ -17,11 +20,23 @@ interface Client {
   lastContact: Date;
   totalValue: number;
   properties: string[];
+=======
+  type?: "buyer" | "seller" | "both" | string; // Allow string for flexibility
+  status: "active" | "potential" | "closed" | string; // Allow string for flexibility
+  preferred_locations?: string[];
+  preferred_contact_method?: string;
+>>>>>>> Stashed changes
   createdAt: string;
-  user?: {
-    name: string;
+  profile_pic?: string | null;
+  budget_range?: { min?: number; max?: number };
+  property_type_interest?: string[];
+  birthday?: Date;
+  user: {
     email: string;
+    first_name: string;
+    last_name: string;
     phone: string;
+    name: string;
   };
 }
 
@@ -30,6 +45,7 @@ const Clients: React.FC = () => {
   const [typeFilter, setTypeFilter] = useState("all");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAddClientModalOpen, setIsAddClientModalOpen] = useState(false);
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [url] = useState("");
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,6 +56,7 @@ const Clients: React.FC = () => {
   const loadClients = async () => {
     try {
       setLoading(true);
+<<<<<<< Updated upstream
 
       // The fetchClients thunk returns an array of clients (Client[]).
       const result = await dispatch(fetchClients()).unwrap();
@@ -73,9 +90,101 @@ const Clients: React.FC = () => {
       } else {
         setClients([]);
       }
+=======
+      const result: any = await dispatch(fetchClients()).unwrap();
+
+      // Normalize the response to always get an array
+      let clientsArray: any[] = [];
+      if (Array.isArray(result)) {
+        clientsArray = result;
+      } else if (result && Array.isArray(result.data)) {
+        clientsArray = result.data;
+      } else if (result && result.data && Array.isArray(result.data.data)) {
+        clientsArray = result.data.data;
+      }
+
+      const parsePreferredLocations = (val: any): string[] => {
+        if (!val) return [];
+        if (Array.isArray(val)) {
+          if (val.length === 1 && typeof val[0] === "string") {
+            try {
+              const parsed = JSON.parse(val[0]);
+              if (Array.isArray(parsed)) return parsed.map(String);
+            } catch (e) {
+              console.warn("Failed to parse preferred_locations:", val[0], e);
+              return val.map(String);
+            }
+          }
+          return val.map(String);
+        }
+        if (typeof val === "string") {
+          try {
+            const parsed = JSON.parse(val);
+            if (Array.isArray(parsed)) return parsed.map(String);
+          } catch (e) {
+            console.warn("Failed to parse preferred_locations string:", val, e);
+            return val
+              .split(",")
+              .map((s) => s.trim())
+              .filter(Boolean);
+          }
+        }
+        return [];
+      };
+
+      const transformedClients = clientsArray.map((client: any) => {
+        const src = client.user || client || {};
+        const firstName =
+          src.first_name || src.firstName || src.name?.split?.(" ")?.[0] || "";
+        const lastName =
+          src.last_name ||
+          src.lastName ||
+          src.name?.split?.(" ")?.slice(1).join(" ") ||
+          "";
+        const name = (
+          firstName && lastName
+            ? `${firstName} ${lastName}`
+            : firstName || lastName || "Unknown"
+        ).trim();
+
+        return {
+          _id: client._id || client.id || src._id || src.id || "",
+          type: client.type || src.type || "buyer", // Default to "buyer"
+          status: (client.status || src.status || "potential").toLowerCase(),
+          properties: client.properties || src.properties || [],
+          preferred_locations: parsePreferredLocations(
+            client.preferred_locations || src.preferred_locations
+          ),
+          preferred_contact_method:
+            client.preferred_contact_method ||
+            src.preferred_contact_method ||
+            "",
+          createdAt:
+            client.createdAt || src.createdAt || new Date().toISOString(),
+          profile_pic: client.profile_pic || src.profile_pic || null,
+          budget_range: client.budget_range || src.budget_range || undefined,
+          property_type_interest:
+            client.property_type_interest || src.property_type_interest || [],
+          birthday:
+            client.birthday || src.birthday
+              ? new Date(client.birthday || src.birthday)
+              : undefined,
+          user: src.email
+            ? {
+                email: src.email,
+                first_name: firstName,
+                last_name: lastName,
+                phone: src.phone || "",
+                name,
+              }
+            : undefined,
+        } as Client;
+      });
+
+      setClients(transformedClients);
+>>>>>>> Stashed changes
     } catch (err) {
-      console.error("Error fetching clients:", err);
-      setError(err instanceof Error ? err.message : "Failed to fetch clients");
+      toast.error("No Client Found");
       setClients([]);
     } finally {
       setLoading(false);
@@ -115,9 +224,19 @@ const Clients: React.FC = () => {
   };
 
   const filteredClients = clients.filter((client) => {
+    const q = searchTerm.trim().toLowerCase();
     const matchesSearch =
-      client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      client.user?.email.toLowerCase().includes(searchTerm.toLowerCase());
+      q === "" ||
+      [
+        client.user?.name,
+        client.user?.first_name,
+        client.user?.last_name,
+        client.user?.email,
+        client.user?.phone,
+      ].some((field) =>
+        field ? String(field).toLowerCase().includes(q) : false
+      );
+
     const matchesType = typeFilter === "all" || client.type === typeFilter;
     return matchesSearch && matchesType;
   });
@@ -172,19 +291,6 @@ const Clients: React.FC = () => {
         </div>
       </div>
 
-      {/* Error State
-      {error && (
-        <div className="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-          <p>Error loading clients: {error}</p>
-          <button
-            onClick={loadClients}
-            className="mt-2 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
-          >
-            Retry
-          </button>
-        </div>
-      )} */}
-
       {/* Loading State */}
       {loading ? (
         <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
@@ -200,54 +306,71 @@ const Clients: React.FC = () => {
           <div className="block lg:hidden">
             {filteredClients.map((client) => (
               <div
-                key={client.id}
+                key={client._id}
                 className="p-4 border-b border-gray-200 last:border-b-0"
               >
                 <div className="flex items-start space-x-3">
-                  <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center flex-shrink-0">
-                    <User className="w-5 h-5 text-gray-600" />
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
+                    {client.profile_pic !== null ? (
+                      <img
+                        src={client.profile_pic}
+                        alt="Profile"
+                        className="w-10 h-10 object-cover"
+                      />
+                    ) : (
+                      <User className="w-5 h-5 text-gray-600" />
+                    )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between">
                       <div>
                         <h3 className="text-sm font-medium text-gray-900">
-                          {client.name}
+                          {client.user?.first_name} {client.user?.last_name}
                         </h3>
-                        <p className="text-xs text-gray-500">{client.email}</p>
-                        <p className="text-xs text-gray-500">{client.phone}</p>
+                        <p className="text-xs text-gray-500">
+                          {client.user?.email || "No email"}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {client.user?.phone || "No phone"}
+                        </p>
                       </div>
                       <div className="flex flex-col items-end space-y-1">
                         <span
                           className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getTypeColor(
-                            client.type
+                            client.type || "buyer"
                           )}`}
                         >
-                          {client.type}
+                          {client.type || "Buyer"}
                         </span>
                         <span
                           className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border ${getStatusColor(
-                            client.status
+                            client.status || "potential"
                           )}`}
                         >
-                          {client.status}
+                          {client.status || "Potential"}
                         </span>
                       </div>
                     </div>
                     <div className="mt-2 flex items-center justify-between">
-                      <span className="text-sm font-medium text-gray-900">
-                        {client.totalValue > 0
-                          ? `$${client.totalValue.toLocaleString()}`
-                          : "No transactions"}
-                      </span>
                       <div className="flex space-x-2">
-                        <button className="text-blue-600 hover:text-blue-900">
-                          <Phone className="w-4 h-4" />
-                        </button>
-                        <button className="text-blue-600 hover:text-blue-900">
-                          <Mail className="w-4 h-4" />
-                        </button>
+                        {client.user?.phone && (
+                          <button className="text-blue-600 hover:text-blue-900">
+                            <Phone className="w-4 h-4" />
+                          </button>
+                        )}
+                        {client.user?.email && (
+                          <button className="text-blue-600 hover:text-blue-900">
+                            <Mail className="w-4 h-4" />
+                          </button>
+                        )}
                         <button className="text-blue-600 hover:text-blue-900">
                           <Calendar className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => setSelectedClient(client)}
+                          className="text-blue-600 hover:text-blue-900"
+                        >
+                          <Eye className="w-4 h-4" />
                         </button>
                       </div>
                     </div>
@@ -275,77 +398,78 @@ const Clients: React.FC = () => {
                     Status
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Total Value
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Last Contact
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredClients.map((client) => (
-                  <tr key={client.id} className="hover:bg-gray-50">
+                  <tr key={client._id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
-                        <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center">
-                          <User className="w-5 h-5 text-gray-600" />
+                        <div className="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden">
+                          {client.profile_pic !== null ? (
+                            <img
+                              src={client.profile_pic}
+                              alt="Profile"
+                              className="w-10 h-10 object-cover"
+                            />
+                          ) : (
+                            <User className="w-5 h-5 text-gray-600" />
+                          )}
                         </div>
                         <div className="ml-4">
                           <div className="text-sm font-medium text-gray-900">
-                            {client.name}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            {client.properties.length} properties
+                            {client.user?.first_name} {client.user?.last_name}
                           </div>
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">
-                        {client.email}
+                        {client.user?.email || "No email"}
                       </div>
                       <div className="text-sm text-gray-500">
-                        {client.phone}
+                        {client.user?.phone || "No phone"}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span
                         className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getTypeColor(
-                          client.type
+                          client.type || "buyer"
                         )}`}
                       >
-                        {client.type}
+                        {client.type || "Buyer"}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span
                         className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border ${getStatusColor(
-                          client.status
+                          client.status || "potential"
                         )}`}
                       >
-                        {client.status}
+                        {client.status || "Potential"}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {client.totalValue > 0
-                        ? `$${client.totalValue.toLocaleString()}`
-                        : "-"}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {client.lastContact.toLocaleDateString()}
-                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                      {client.user?.phone && (
+                        <button className="text-blue-600 hover:text-blue-900">
+                          <Phone className="w-5 h-5" />
+                        </button>
+                      )}
+                      {client.user?.email && (
+                        <button className="text-blue-600 hover:text-blue-900">
+                          <Mail className="w-5 h-5" />
+                        </button>
+                      )}
                       <button className="text-blue-600 hover:text-blue-900">
-                        <Phone className="w-4 h-4" />
+                        <Calendar className="w-5 h-5" />
                       </button>
-                      <button className="text-blue-600 hover:text-blue-900">
-                        <Mail className="w-4 h-4" />
-                      </button>
-                      <button className="text-blue-600 hover:text-blue-900">
-                        <Calendar className="w-4 h-4" />
+                      <button
+                        onClick={() => setSelectedClient(client)}
+                        className="text-blue-600 hover:text-blue-900"
+                      >
+                        <Eye className="w-5 h-5" />
                       </button>
                     </td>
                   </tr>
@@ -362,10 +486,14 @@ const Clients: React.FC = () => {
             <User className="w-12 h-12 mx-auto" />
           </div>
           <h3 className="text-lg font-medium text-gray-900 mb-2">
-            No clients found
+            {searchTerm || typeFilter !== "all"
+              ? "No matching clients found"
+              : "No clients available"}
           </h3>
           <p className="text-gray-600">
-            Try adjusting your search filters or add a new client.
+            {searchTerm || typeFilter !== "all"
+              ? "Try adjusting your search or filters."
+              : "Add a new client to get started."}
           </p>
         </div>
       )}
@@ -385,6 +513,12 @@ const Clients: React.FC = () => {
         url={url}
         title="Share This Link"
         description="Copy this URL to share with others"
+      />
+
+      <ClientDetailsModal
+        isOpen={!!selectedClient}
+        onClose={() => setSelectedClient(null)}
+        client={selectedClient}
       />
     </div>
   );

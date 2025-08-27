@@ -1,7 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-// import { useAppContext } from "@/context/AppContext";
-// import { BASE_URL } from "@/config";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -14,41 +12,36 @@ import { setEmail } from "@/store/slices/otherAuthSlice";
 export function LoginPage() {
   const [email, setEmailLocal] = useState("");
   const [password, setPassword] = useState("");
-  // const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null); // Explicitly type error as string | null
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const loading = useAppSelector(selectIsLoading);
-  const { error: authError } = useAppSelector((state) => state.auth);
 
   useEffect(() => {
     dispatch(clearError());
   }, [authError]);
 
-  // Navigate to workspace subdomain
   const handleWorkspaceClick = (workspace: any) => {
     const slug = workspace.name
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/(^-|-$)/g, "");
-
     const protocol = window.location.protocol;
     const host = `${slug}.${CRM_BASE_DOMAIN}`;
     const port = window.location.port ? `:${window.location.port}` : "";
     const targetUrl = `${protocol}//${host}${port}/client`;
-
     window.location.assign(targetUrl);
   };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    // setLoading(true);
-    // setError(null);
+    setError(null);
+    setLoading(true);
     try {
       const result = await dispatch(login({ email, password })).unwrap();
       console.log(result);
 
       if (result.data?.type === "Unverified Login") {
-        // Handle unverified login case
         dispatch(setEmail(email));
         navigate("/verification");
         return;
@@ -57,17 +50,24 @@ export function LoginPage() {
       const user = result.data;
       dispatch({ type: "SET_USER", payload: user });
 
-      // Route based on user_type
       if (result.data?.user_type === "Realtor") {
         navigate("/workspace");
       } else if (result.data?.user_type === "Client") {
         handleWorkspaceClick(result.data?.workspace);
       } else {
-        // Default fallback
         navigate("/workspace");
       }
-    } catch (_err) {
-      // setLoading(false);
+    } catch (_err: any) {
+      // Explicitly type _err as any for flexibility, or use a more specific type if known
+      let errorMessage = "An unknown error occurred.";
+      if (typeof _err === "string") {
+        errorMessage = _err;
+      } else if (_err && typeof _err === "object" && "message" in _err) {
+        errorMessage = _err.message as string; // Type assertion to ensure message is string
+      }
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -82,7 +82,6 @@ export function LoginPage() {
       subtitle="Sign in to your premium workspace and unlock unlimited possibilities"
     >
       <div className="space-y-8 text-black">
-        {/* Login Form */}
         <form onSubmit={handleLogin} className="space-y-6">
           <Input
             label="Email Address"
@@ -115,9 +114,9 @@ export function LoginPage() {
               Forgot password?
             </button>
           </div>
-          {authError && (
-            <div className="text-red-600 text-sm font-medium text-center mb-2">
-              {authError}
+          {error && (
+            <div className="text-red-600 border-red-300 border p-2 bg-red-50 text-sm font-medium text-center mb-2">
+              {error}
             </div>
           )}
           <Button
@@ -126,14 +125,11 @@ export function LoginPage() {
             size="lg"
             className="w-full"
             loading={loading}
-            // magnetic
-            // glow
           >
             <Zap size={20} />
             Login
           </Button>
         </form>
-        {/* Signup Link */}
         <div className="flex items-center justify-center mt-6">
           <span className="text-black mr-2">Don't have an account?</span>
           <Button
@@ -145,7 +141,6 @@ export function LoginPage() {
             Sign Up
           </Button>
         </div>
-        {/* Features Preview */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-12 pt-8 border-t border-black/10">
           <div className="text-center space-y-2">
             <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto">
