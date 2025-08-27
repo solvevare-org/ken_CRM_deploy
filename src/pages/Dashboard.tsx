@@ -7,26 +7,16 @@ import TopProperties from "./TopProperties";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { getCurrentUser } from "@/store/slices/authSlice";
 import { selectUser } from "@/store/slices/authSlice";
-import api from "@/utils/api";
+import { getApiBaseUrl } from "@/utils/api";
 
 const Dashboard: React.FC = () => {
   const dispatch = useAppDispatch();
   const user = useAppSelector(selectUser);
 
   useEffect(() => {
+    console.log("base url", getApiBaseUrl());
     dispatch(getCurrentUser());
   }, [dispatch]);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      await api
-        .get("/api/debug", { withCredentials: true })
-        .then((r) => r.data)
-        .then(console.log)
-        .catch(console.error);
-    };
-    fetchData();
-  }, []);
 
   return (
     <div className="p-4 lg:p-6 space-y-4 lg:space-y-6">

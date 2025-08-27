@@ -119,7 +119,7 @@ export const getCurrentUser = createAsyncThunk<
     const response = await api.get<ApiResponse<{ auth: any }>>(
       `${BASE_URL}/current-user`
     );
-    console.log(response, "<=== getCurrentUser");
+    // console.log(response, "<=== getCurrentUser");
     return response.data;
   } catch (error) {
     console.log(error, "<=== getCurrentUser");

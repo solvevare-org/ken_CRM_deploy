@@ -14,11 +14,16 @@ import {
   X,
 } from "lucide-react";
 import { BASE_URL, CRM_BASE_DOMAIN } from "../../config";
-import { useAppSelector } from "@/store/hooks";
+import { useAppSelector, useAppDispatch } from "@/store/hooks";
+import {
+  checkWorkspaceExists,
+  createWorkspace,
+} from "@/store/slices/workspaceSlice";
 
 export function WorkspaceDetailsPage() {
   const navigate = useNavigate();
-  const { dispatch } = useAppContext();
+  const { dispatch: appDispatch } = useAppContext();
+  const reduxDispatch = useAppDispatch();
   const { workspaceType } = useAppSelector((state) => state.workspace);
   const name = workspaceType === "personal" ? "Personal" : "Organization";
   console.log(workspaceType);
@@ -166,21 +171,23 @@ export function WorkspaceDetailsPage() {
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/(^-|-$)/g, "");
 
-      const response = await fetch(
-        `${BASE_URL}/api/workspaces/check-exist?name=${slug}`,
-        {
-          method: "GET",
-          credentials: "include",
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      // const response = await fetch(
+      //   `${BASE_URL}/api/workspaces/check-exist?name=${slug}`,
+      //   {
+      //     method: "GET",
+      //     credentials: "include",
+      //     headers: {
+      //       Authorization: `Bearer ${localStorage.getItem("token")}`,
+      //       "Content-Type": "application/json",
+      //     },
+      //   }
+      // );
 
-      if (response.ok) {
-        const result = await response.json();
-        if (result.data?.available) {
+      try {
+        // Dispatch the thunk via Redux dispatch and unwrap the result for the payload
+        const result = await reduxDispatch(checkWorkspaceExists(slug)).unwrap();
+
+        if (result?.data?.available) {
           setNameValidation({
             isValid: true,
             isChecking: false,
@@ -191,15 +198,17 @@ export function WorkspaceDetailsPage() {
             isValid: false,
             isChecking: false,
             message:
+              result?.data?.message ||
               "This workspace name is already taken. Please choose a different name.",
           });
         }
-      } else {
-        setNameValidation({
-          isValid: false,
-          isChecking: false,
-          message: "Unable to check name availability. Please try again.",
-        });
+      } catch (err) {
+        // err will be the rejectWithValue payload (string) or an Error
+        const message =
+          typeof err === "string"
+            ? err
+            : "Unable to check name availability. Please try again.";
+        setNameValidation({ isValid: false, isChecking: false, message });
       }
     } catch (error) {
       console.error("Error checking workspace availability:", error);
@@ -253,10 +262,15 @@ export function WorkspaceDetailsPage() {
     setLoading(true);
 
     try {
-      // Prepare workspace data for API
+      // Normalize workspace type to allowed values and prepare workspace data for API
+      const normalizedType: "personal" | "organization" =
+        (workspaceType ?? "organization") === "personal"
+          ? "personal"
+          : "organization";
+
       const workspaceData = {
         name: workspaceName.trim(),
-        type: workspaceType, // Set as organization workspace
+        type: normalizedType,
         ...(uploadedImagePath ||
         signatureFiles.length > 0 ||
         disabledFeatures.length > 0
@@ -274,30 +288,23 @@ export function WorkspaceDetailsPage() {
           : {}),
       };
 
-      const response = await fetch(`${BASE_URL}/api/workspaces`, {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(workspaceData),
-      });
+      // Dispatch create workspace thunk and unwrap the payload (ApiResponse<Workspace>)
+      const response = await reduxDispatch(
+        createWorkspace(workspaceData)
+      ).unwrap();
 
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.message || "Failed to create workspace");
+      if (!response || !response.success) {
+        throw new Error(response?.message || "Failed to create workspace");
       }
 
-      if (result.success && result.data) {
+      if (response.success && response.data) {
         // Update local context with new workspace
         const newWorkspace = {
-          id: result.data._id || result.data.id,
-          name: result.data.name,
+          id: response.data._id,
+          name: response.data.name,
           description: "",
           type: "main" as const,
-          createdAt: result.data.createdAt || new Date().toISOString(),
+          createdAt: response.data.createdAt || new Date().toISOString(),
           memberCount: 1,
           activeListings: 0,
           totalDeals: 0,
@@ -310,8 +317,9 @@ export function WorkspaceDetailsPage() {
           isWhitelabel: true,
         };
 
-        dispatch({ type: "ADD_WORKSPACE", payload: newWorkspace });
-        setCreatedWorkspace(result.data);
+        // Update local context with new workspace
+        appDispatch({ type: "ADD_WORKSPACE", payload: newWorkspace });
+        setCreatedWorkspace(response.data);
         setLoading(false);
         setShowSuccessModal(true);
       } else {

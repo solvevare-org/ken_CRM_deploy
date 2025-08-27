@@ -286,7 +286,7 @@ const workspaceSlice = createSlice({
         const currentWorkspace: Workspace = {
           _id: action.payload.data.workspace.id,
           name: action.payload.data.workspace.name,
-          type: "shared", // Default type, you might want to store this info
+          type: "organization", // Default type, you might want to store this info
         };
         state.currentWorkspace = currentWorkspace;
         state.error.selectWorkspace = null;

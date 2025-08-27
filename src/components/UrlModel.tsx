@@ -23,9 +23,36 @@ export function UrlModal({
   const handleCopy = async () => {
     try {
       const current = generatedUrl || url;
-      await navigator.clipboard.writeText(current);
-      setCopied(true);
+      if (!current) {
+        console.warn("No URL available to copy");
+        return;
+      }
 
+      // Prefer modern clipboard API when available
+      if (
+        typeof navigator !== "undefined" &&
+        (navigator as any).clipboard &&
+        typeof (navigator as any).clipboard.writeText === "function"
+      ) {
+        await (navigator as any).clipboard.writeText(current);
+      } else {
+        // Fallback for environments where navigator.clipboard is undefined
+        const textarea = document.createElement("textarea");
+        textarea.value = current;
+        // Prevent zooming on iOS and keep off-screen
+        textarea.setAttribute("readonly", "");
+        textarea.style.position = "absolute";
+        textarea.style.left = "-9999px";
+        document.body.appendChild(textarea);
+        textarea.select();
+        textarea.setSelectionRange(0, textarea.value.length);
+        const successful = document.execCommand("copy");
+        document.body.removeChild(textarea);
+        if (!successful)
+          throw new Error("Fallback: copy command was unsuccessful");
+      }
+
+      setCopied(true);
       // Reset copied state after 2 seconds
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
@@ -96,8 +123,46 @@ export function UrlModal({
                 const result = await dispatch(
                   generateClientLink() as any
                 ).unwrap();
-                // The thunk returns a string URL
-                setGeneratedUrl(result || "");
+
+                // Thunk may return different shapes depending on the API
+                // - a plain string (direct URL)
+                // - an object containing `url` somewhere
+                // - an object containing `shortLink` which we need to expand
+                let urlFromResult = "";
+
+                if (typeof result === "string") {
+                  urlFromResult = result;
+                } else if (result && typeof result === "object") {
+                  // common places the url/shortLink might live
+                  urlFromResult =
+                    result.url ||
+                    result.data?.url ||
+                    result.data?.data?.url ||
+                    "";
+
+                  const short =
+                    result.shortLink ||
+                    result.data?.shortLink ||
+                    result.data?.data?.shortLink ||
+                    "";
+
+                  if (!urlFromResult && short) {
+                    // Build a full clientForm URL from the short link
+                    try {
+                      const origin =
+                        typeof window !== "undefined"
+                          ? window.location.origin
+                          : "";
+                      urlFromResult = origin
+                        ? `${origin}/clientForm/${short}`
+                        : `/clientForm/${short}`;
+                    } catch (e) {
+                      urlFromResult = `/clientForm/${short}`;
+                    }
+                  }
+                }
+
+                setGeneratedUrl(urlFromResult || "");
               } catch (err: any) {
                 setGenerateError(
                   err instanceof Error ? err.message : String(err)

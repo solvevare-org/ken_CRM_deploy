@@ -31,12 +31,10 @@ export function VerificationPage() {
       // Verify the verification code
       console.log(email, code, verificationMethod);
       const response = await dispatch(verifySignup({ email, code })).unwrap();
-      
+
       if (response.success) {
         setVerificationSuccessful(true);
         if (response.data?.user_type === "Client") {
-          // Clear signup data before navigation for clients
-          dispatch(clearSignupData());
           navigate("/");
           return;
         } else {
@@ -44,13 +42,12 @@ export function VerificationPage() {
           navigate("/payment");
           // Don't clear signup data here - let the payment page handle it
         }
-      } else {
-        setError(
-          response.message || "Invalid verification code. Please try again."
-        );
+        // Clear signup data after navigation
+        setTimeout(() => dispatch(clearSignupData()), 0);
       }
-    } catch (err) {
-      setError("Network error. Please check your connection and try again.");
+    } catch (err: any) {
+      console.log(err);
+      setError(err || "Invalid verification code. Please try again.");
     } finally {
       setLoading(false);
     }

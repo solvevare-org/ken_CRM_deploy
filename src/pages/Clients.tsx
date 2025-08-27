@@ -117,7 +117,7 @@ const Clients: React.FC = () => {
   const filteredClients = clients.filter((client) => {
     const matchesSearch =
       client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      client.email.toLowerCase().includes(searchTerm.toLowerCase());
+      client.user?.email.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = typeFilter === "all" || client.type === typeFilter;
     return matchesSearch && matchesType;
   });

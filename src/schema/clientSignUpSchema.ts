@@ -12,7 +12,6 @@ export const clientSignUpSchema = z
     password: z.string().min(6, "Password must be at least 6 characters"),
     confirmPassword: z.string().min(6, "Please confirm your password"),
     birthday: z.string().optional(),
-    profilePic: z.any().nullable(),
     preferred_contact_method: z.enum(["email", "phone", "text"]),
     budget_range: z.object({
       min: z.string().optional(),

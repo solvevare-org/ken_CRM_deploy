@@ -1,20 +1,21 @@
 import React, { useEffect } from "react";
 import { Building2, Users, TrendingUp } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { dashboardCounts } from "@/store/slices/realtorSlice";
+import {
+  dashboardCounts,
+  selectDashboardCounts,
+} from "@/store/slices/realtorSlice";
 
 const StatsCards: React.FC = () => {
   const dispatch = useAppDispatch();
-  const { leadCount, clientCount, propertyCount } = useAppSelector((state) => ({
-    leadCount: state.realtor.leadCount,
-    clientCount: state.realtor.clientCount,
-    propertyCount: state.realtor.propertyCount,
-  }));
+  const { leadCount, clientCount, propertyCount } = useAppSelector(
+    selectDashboardCounts
+  );
 
   useEffect(() => {
     // Fetch dashboard counts on mount if not yet loaded
+    dispatch(dashboardCounts());
     if (leadCount === 0 && clientCount === 0 && propertyCount === 0) {
-      dispatch(dashboardCounts());
     }
   }, [dispatch, leadCount, clientCount, propertyCount]);
 

@@ -1,4 +1,9 @@
-import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
+import {
+  createSlice,
+  createAsyncThunk,
+  PayloadAction,
+  createSelector,
+} from "@reduxjs/toolkit";
 import api, { handleApiError } from "../../utils/api";
 import { Lead, Realtor, RealtorState } from "../../types/realtorTypes";
 import { Client } from "@/types";
@@ -92,12 +97,14 @@ export const dashboardCounts = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const response = await api.get(`${API_BASE_URL}/counts`);
+      console.log("<=== dashboardCounts", response);
       return response.data.data as {
         leadCount: number;
         clientCount: number;
         propertyCount: number;
       };
     } catch (error) {
+      console.log("<=== dashboardCounts", error);
       return rejectWithValue(handleApiError(error));
     }
   }
@@ -108,10 +115,11 @@ export const fetchClients = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       // Backend exposes clients at /api/customers
-      const response = await api.get(`/api/customers`);
+      const response = await api.get(`${API_BASE_URL}/clients`);
+      console.log("client", response);
       return response.data.data as Client[];
     } catch (error) {
-      console.log(error);
+      console.log("client", error);
       return rejectWithValue(handleApiError(error));
     }
   }
@@ -452,3 +460,15 @@ export const selectAddToCampaignLoading = (state: { realtor: RealtorState }) =>
   state.realtor.addToCampaignLoading;
 export const selectAddToCampaignError = (state: { realtor: RealtorState }) =>
   state.realtor.addToCampaignError;
+
+// Memoized selector for dashboard counts to avoid creating a new object each call
+export const selectDashboardCounts = createSelector(
+  (state: { realtor: RealtorState }) => state.realtor.leadCount,
+  (state: { realtor: RealtorState }) => state.realtor.clientCount,
+  (state: { realtor: RealtorState }) => state.realtor.propertyCount,
+  (leadCount, clientCount, propertyCount) => ({
+    leadCount,
+    clientCount,
+    propertyCount,
+  })
+);

@@ -292,6 +292,25 @@ function App() {
       <Router>
         <div className="min-h-screen bg-gray-50">
           <Routes>
+            {/* Client portal routes (always registered) */}
+            <Route path="/client" element={<ClientPortal />} />
+            <Route
+              path="/client/favorites"
+              element={<ClientPortal initialPage="favorites" />}
+            />
+            <Route
+              path="/client/chat"
+              element={<ClientPortal initialPage="chat" />}
+            />
+            <Route
+              path="/client/notifications"
+              element={<ClientPortal initialPage="notifications" />}
+            />
+            <Route
+              path="/client/settings"
+              element={<ClientPortal initialPage="settings" />}
+            />
+
             {/* Workspace subdomain routes */}
             {isWorkspace ? (
               <>
@@ -431,6 +450,7 @@ function App() {
                     </WorkspaceProtectedRoute>
                   }
                 />
+
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="*" element={<Navigate to="/realtor" replace />} />
               </>
@@ -471,25 +491,6 @@ function App() {
                 <Route
                   path="/view-all-workspaces"
                   element={<WorkspaceListPage />}
-                />
-
-                {/* Client portal routes (prefixed) */}
-                <Route path="/client" element={<ClientPortal />} />
-                <Route
-                  path="/client/favorites"
-                  element={<ClientPortal initialPage="favorites" />}
-                />
-                <Route
-                  path="/client/chat"
-                  element={<ClientPortal initialPage="chat" />}
-                />
-                <Route
-                  path="/client/notifications"
-                  element={<ClientPortal initialPage="notifications" />}
-                />
-                <Route
-                  path="/client/settings"
-                  element={<ClientPortal initialPage="settings" />}
                 />
 
                 {/* Realtor portal routes (prefixed) */}
