@@ -14,7 +14,7 @@ import { ToastContainer } from "react-toastify";
 import Layout from "@/components/Layout";
 import ClientProperties from "@/components/Properties";
 import Favorites from "@/components/Favorites";
-import Chat from "@/components/Chat";
+import RealTimeChat from "@/components/RealTimeChat";
 import ClientNotifications from "@/components/Notifications";
 import Settings from "@/components/Settings";
 import { mockProperties } from "@/data/mockData";
@@ -67,6 +67,11 @@ import RealtorNotifications from "@/pages/Notifications";
 import Messaging from "@/pages/Messaging";
 import Realtors from "@/pages/Realtors";
 
+// Builder Tools
+import SMSBuilder from "@/pages/SMSBuilder";
+import EmailBuilder from "@/pages/EmailBuilder";
+import ContractBuilder from "@/pages/ContractBuilder";
+
 const WorkspaceListPage = () => <div>All Workspaces Page</div>;
 
 const ClientPortal: React.FC<{ initialPage?: string }> = ({
@@ -102,7 +107,7 @@ const ClientPortal: React.FC<{ initialPage?: string }> = ({
           />
         );
       case "chat":
-        return <Chat />;
+        return <RealTimeChat />;
       case "notifications":
         return <ClientNotifications />;
       case "settings":
@@ -148,6 +153,12 @@ const RealtorPortal: React.FC<{ initialSection?: string }> = ({
         return <Marketing />;
       case "calendar":
         return <Calendar />;
+      case "sms-builder":
+        return <SMSBuilder />;
+      case "email-builder":
+        return <EmailBuilder />;
+      case "contract-builder":
+        return <ContractBuilder />;
       case "followup-templating":
         return <FollowupTemplating />;
       case "followup":
@@ -403,6 +414,30 @@ function App() {
                   }
                 />
                 <Route
+                  path="/realtor/sms-builder"
+                  element={
+                    <WorkspaceProtectedRoute>
+                      <RealtorPortal initialSection="sms-builder" />
+                    </WorkspaceProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/realtor/email-builder"
+                  element={
+                    <WorkspaceProtectedRoute>
+                      <RealtorPortal initialSection="email-builder" />
+                    </WorkspaceProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/realtor/contract-builder"
+                  element={
+                    <WorkspaceProtectedRoute>
+                      <RealtorPortal initialSection="contract-builder" />
+                    </WorkspaceProtectedRoute>
+                  }
+                />
+                <Route
                   path="/realtor/followup-templating"
                   element={
                     <WorkspaceProtectedRoute>
@@ -530,6 +565,18 @@ function App() {
                 <Route
                   path="/realtor/calendar"
                   element={<RealtorPortal initialSection="calendar" />}
+                />
+                <Route
+                  path="/realtor/sms-builder"
+                  element={<RealtorPortal initialSection="sms-builder" />}
+                />
+                <Route
+                  path="/realtor/email-builder"
+                  element={<RealtorPortal initialSection="email-builder" />}
+                />
+                <Route
+                  path="/realtor/contract-builder"
+                  element={<RealtorPortal initialSection="contract-builder" />}
                 />
                 <Route
                   path="/realtor/followup-templating"
