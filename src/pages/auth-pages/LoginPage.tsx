@@ -19,7 +19,7 @@ export function LoginPage() {
 
   useEffect(() => {
     dispatch(clearError());
-  }, [authError]);
+  }, [error]);
 
   const handleWorkspaceClick = (workspace: any) => {
     const slug = workspace.name

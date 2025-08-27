@@ -10,7 +10,6 @@ import { toast } from "react-toastify";
 
 export interface Client {
   _id: string;
-<<<<<<< Updated upstream
   id?: string; // For backward compatibility
   name: string;
   email: string;
@@ -20,12 +19,6 @@ export interface Client {
   lastContact: Date;
   totalValue: number;
   properties: string[];
-=======
-  type?: "buyer" | "seller" | "both" | string; // Allow string for flexibility
-  status: "active" | "potential" | "closed" | string; // Allow string for flexibility
-  preferred_locations?: string[];
-  preferred_contact_method?: string;
->>>>>>> Stashed changes
   createdAt: string;
   profile_pic?: string | null;
   budget_range?: { min?: number; max?: number };
@@ -56,7 +49,6 @@ const Clients: React.FC = () => {
   const loadClients = async () => {
     try {
       setLoading(true);
-<<<<<<< Updated upstream
 
       // The fetchClients thunk returns an array of clients (Client[]).
       const result = await dispatch(fetchClients()).unwrap();
@@ -90,99 +82,6 @@ const Clients: React.FC = () => {
       } else {
         setClients([]);
       }
-=======
-      const result: any = await dispatch(fetchClients()).unwrap();
-
-      // Normalize the response to always get an array
-      let clientsArray: any[] = [];
-      if (Array.isArray(result)) {
-        clientsArray = result;
-      } else if (result && Array.isArray(result.data)) {
-        clientsArray = result.data;
-      } else if (result && result.data && Array.isArray(result.data.data)) {
-        clientsArray = result.data.data;
-      }
-
-      const parsePreferredLocations = (val: any): string[] => {
-        if (!val) return [];
-        if (Array.isArray(val)) {
-          if (val.length === 1 && typeof val[0] === "string") {
-            try {
-              const parsed = JSON.parse(val[0]);
-              if (Array.isArray(parsed)) return parsed.map(String);
-            } catch (e) {
-              console.warn("Failed to parse preferred_locations:", val[0], e);
-              return val.map(String);
-            }
-          }
-          return val.map(String);
-        }
-        if (typeof val === "string") {
-          try {
-            const parsed = JSON.parse(val);
-            if (Array.isArray(parsed)) return parsed.map(String);
-          } catch (e) {
-            console.warn("Failed to parse preferred_locations string:", val, e);
-            return val
-              .split(",")
-              .map((s) => s.trim())
-              .filter(Boolean);
-          }
-        }
-        return [];
-      };
-
-      const transformedClients = clientsArray.map((client: any) => {
-        const src = client.user || client || {};
-        const firstName =
-          src.first_name || src.firstName || src.name?.split?.(" ")?.[0] || "";
-        const lastName =
-          src.last_name ||
-          src.lastName ||
-          src.name?.split?.(" ")?.slice(1).join(" ") ||
-          "";
-        const name = (
-          firstName && lastName
-            ? `${firstName} ${lastName}`
-            : firstName || lastName || "Unknown"
-        ).trim();
-
-        return {
-          _id: client._id || client.id || src._id || src.id || "",
-          type: client.type || src.type || "buyer", // Default to "buyer"
-          status: (client.status || src.status || "potential").toLowerCase(),
-          properties: client.properties || src.properties || [],
-          preferred_locations: parsePreferredLocations(
-            client.preferred_locations || src.preferred_locations
-          ),
-          preferred_contact_method:
-            client.preferred_contact_method ||
-            src.preferred_contact_method ||
-            "",
-          createdAt:
-            client.createdAt || src.createdAt || new Date().toISOString(),
-          profile_pic: client.profile_pic || src.profile_pic || null,
-          budget_range: client.budget_range || src.budget_range || undefined,
-          property_type_interest:
-            client.property_type_interest || src.property_type_interest || [],
-          birthday:
-            client.birthday || src.birthday
-              ? new Date(client.birthday || src.birthday)
-              : undefined,
-          user: src.email
-            ? {
-                email: src.email,
-                first_name: firstName,
-                last_name: lastName,
-                phone: src.phone || "",
-                name,
-              }
-            : undefined,
-        } as Client;
-      });
-
-      setClients(transformedClients);
->>>>>>> Stashed changes
     } catch (err) {
       toast.error("No Client Found");
       setClients([]);
