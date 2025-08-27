@@ -11,7 +11,7 @@ export const setAuthTokenGetter = (getter: () => string | undefined): void => {
 // Use the page's hostname so API requests target the same domain (lvh.me / subdomains)
 // — this ensures cookies set for ".lvh.me" are sent with XHRs from subdomains like
 // hzuaifa-personal-4.lvh.me. Fall back to localhost when window is not available.
-const getApiBaseUrl = (): string => {
+export const getApiBaseUrl = (): string => {
   try {
     if (
       typeof window !== "undefined" &&

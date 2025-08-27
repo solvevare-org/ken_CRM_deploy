@@ -283,3 +283,204 @@ export interface ApiErrorResponse {
   statusCode?: number;
   errors?: string[];
 }
+
+
+// New
+export interface ClientPropertyDescription {
+  summary?: string;
+  features?: string[];
+  highlights?: string[];
+  text?: string;
+}
+
+export interface ClientPropertyPricing {
+  list_price?: number;
+  last_sold_date?: string | null;
+  last_sold_price?: number;
+  price_per_sqft?: number;
+  monthly_payment?: number;
+}
+
+export interface ClientPropertySchool {
+  id: string;
+  name: string;
+  type: string;
+  distance?: number;
+  rating?: number;
+  district?: {
+    name?: string;
+  };
+  distance_in_miles?: number;
+  education_levels?: string[];
+}
+
+export interface ClientPropertySchools {
+  assigned?: ClientPropertySchool[];
+  nearby?: ClientPropertySchool[];
+}
+
+export interface ClientPropertyNeighborhood {
+  id: string;
+  name: string;
+  type: string;
+  description?: string;
+  city?: string;
+  level?: string;
+  geo_statistics?: {
+    housing_market?: {
+      median_listing_price?: number;
+    };
+  };
+}
+
+export interface ClientPropertyHistory {
+  id: string;
+  date: string;
+  event: string;
+  event_name?: string;
+  source_name?: string;
+  price?: number;
+  details?: string;
+}
+
+export interface ClientPropertyTaxHistory {
+  year: number;
+  amount: number;
+  assessment?: {
+    total?: number;
+  };
+  tax?: number;
+}
+
+export interface ClientPropertyEstimate {
+  source: string;
+  value: number;
+  confidence?: number;
+  date?: string;
+  name?: string;
+}
+
+export interface ClientPropertyEstimates {
+  zestimate?: ClientPropertyEstimate;
+  redfin?: ClientPropertyEstimate;
+  other?: ClientPropertyEstimate[];
+  current_values?: Array<{
+    source: ClientPropertyEstimate;
+    estimate: number;
+    estimate_low: number;
+    estimate_high: number;
+    date: string;
+  }>;
+}
+
+
+// New API-based Client Property interfaces
+export interface ClientPropertyAddress {
+  street: string;
+  city: string;
+  state: string;
+  postal_code: string;
+  country: string;
+}
+
+export interface ClientPropertyLocation {
+  latitude: number;
+  longitude: number;
+  street_view_url?: string;
+  county_fips?: string;
+  address?: {
+    line?: string;
+    street_number?: string;
+    street_name?: string;
+    street_suffix?: string;
+    city?: string;
+    state?: string;
+    state_code?: string;
+    postal_code?: string;
+    country?: string | null;
+    unit?: string | null;
+  };
+  coordinate?: {
+    lat?: number;
+    lon?: number;
+    accuracy?: number | null;
+  };
+  county?: {
+    fips_code?: string;
+    name?: string | null;
+  };
+  neighborhoods?: ClientPropertyNeighborhood[];
+}
+
+export interface ClientPropertyDetails {
+  beds: number;
+  baths: number;
+  baths_full: number;
+  baths_half: number | null;
+  sqft: number;
+  lot_sqft: number;
+  year_built: number | null;
+  sub_type: string | null;
+  type?: string;
+  stories?: number;
+  units?: number;
+}
+
+export interface ClientPropertyMedia {
+  primary_photo: string;
+  photo_count: number;
+  photos?: string[];
+  virtual_tours?: boolean;
+  matterport?: boolean;
+  videos?: boolean;
+}
+
+export interface ClientPropertyFlags {
+  is_new_listing: boolean;
+  is_pending: boolean;
+  is_contingent: boolean;
+  is_foreclosure: boolean;
+  is_new_construction: boolean;
+  is_plan: boolean;
+  is_coming_soon: boolean;
+  is_price_reduced: boolean;
+}
+
+export interface ClientPropertyAPI {
+  _id: string;
+  name: string;
+  price: number;
+  status: string;
+  property_type: string;
+  source_type: string;
+  createdAt: string;
+  listed_date: string;
+  fullAddress: string;
+  imageArray: string[];
+  id: string;
+  address: ClientPropertyAddress;
+  location?: ClientPropertyLocation;
+  details?: ClientPropertyDetails;
+  media?: ClientPropertyMedia;
+  flags?: ClientPropertyFlags;
+  description?: ClientPropertyDescription;
+  pricing?: ClientPropertyPricing;
+  schools?: ClientPropertySchools;
+  property_history?: ClientPropertyHistory[];
+  tax_history?: ClientPropertyTaxHistory[];
+  estimates?: ClientPropertyEstimates;
+}
+
+export interface ClientPropertyApiResponse {
+  statusCode: number;
+  message: string;
+  data: {
+    items: ClientPropertyAPI[];
+    pageInfo: {
+      endCursor: string;
+      hasNextPage: boolean;
+    };
+    role: string;
+  };
+  success: boolean;
+}
