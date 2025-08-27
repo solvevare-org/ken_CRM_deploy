@@ -56,6 +56,7 @@ class SocketService {
       console.log('🔌 Initializing socket connection to:', BASE_URL);
       
       this.socket = io(BASE_URL, {
+        path: '/socket.io', // Explicitly set the Socket.IO path
         transports: ['polling', 'websocket'], // Try polling first, then websocket
         autoConnect: false,
         reconnection: true,
@@ -149,10 +150,6 @@ class SocketService {
         return;
       }
 
-      if (!this.socket.connected) {
-        this.socket.connect();
-      }
-
       // Clean up any existing listeners first
       this.socket.off('authenticated');
       this.socket.off('auth_error');
@@ -161,7 +158,10 @@ class SocketService {
       const timeout = setTimeout(() => {
         this.socket?.off('authenticated', successHandler);
         this.socket?.off('auth_error', errorHandler);
+        this.socket?.off('connect', connectHandler);
         console.error('❌ Authentication timeout - no response from server');
+        console.error('Socket connected:', this.socket?.connected);
+        console.error('Socket ID:', this.socket?.id);
         reject(new Error('Authentication timeout'));
       }, 15000); // Increased timeout
 
@@ -169,6 +169,9 @@ class SocketService {
         console.log('🔥 Received authenticated event:', data);
         clearTimeout(timeout);
         this.socket?.off('auth_error', errorHandler);
+        this.socket?.off('connect', connectHandler);
+        // Remove the onAny listener to prevent duplicate logging
+        this.socket?.off('authenticated', successHandler);
         this.isAuthenticated = true;
         console.log('✅ Authentication successful:', data);
         resolve(data);
@@ -178,19 +181,67 @@ class SocketService {
         console.log('🔥 Received auth_error event:', error);
         clearTimeout(timeout);
         this.socket?.off('authenticated', successHandler);
+        this.socket?.off('connect', connectHandler);
         this.isAuthenticated = false;
         console.error('❌ Authentication failed:', error);
         reject(error);
       };
 
-      // Set up event listeners
+      const sendAuthRequest = () => {
+        console.log('🔐 Sending authentication request with token:', token ? 'present' : 'missing');
+        console.log('🔌 Socket ID before auth:', this.socket?.id);
+        console.log('🔌 Socket connected:', this.socket?.connected);
+        console.log('🔌 Token value (first 20 chars):', token ? token.substring(0, 20) + '...' : 'no token');
+        
+        // Add a test emit to see if ANY events are being received by backend
+        this.socket?.emit('test_event', { message: 'Testing if backend receives events' });
+        this.socket?.emit('authenticate', { token });
+        
+        console.log('🔐 Authentication event emitted');
+      };
+
+      const connectHandler = () => {
+        console.log('� Socket connected, now sending auth request');
+        this.socket?.off('connect', connectHandler);
+        sendAuthRequest();
+      };
+
+      // Set up event listeners using onAny as backup since direct listeners aren't working
+      const anyEventHandler = (eventName: string, ...args: any[]) => {
+        if (eventName === 'authenticated') {
+          console.log('🔥 Received authenticated event via onAny:', args[0]);
+          clearTimeout(timeout);
+          this.socket?.off('auth_error', errorHandler);
+          this.socket?.off('connect', connectHandler);
+          this.socket?.offAny(anyEventHandler);
+          this.isAuthenticated = true;
+          console.log('✅ Authentication successful:', args[0]);
+          resolve(args[0]);
+        } else if (eventName === 'auth_error') {
+          console.log('🔥 Received auth_error event via onAny:', args[0]);
+          clearTimeout(timeout);
+          this.socket?.off('authenticated', successHandler);
+          this.socket?.off('connect', connectHandler);
+          this.socket?.offAny(anyEventHandler);
+          this.isAuthenticated = false;
+          console.error('❌ Authentication failed:', args[0]);
+          reject(args[0]);
+        }
+      };
+
+      this.socket.onAny(anyEventHandler);
       this.socket.once('authenticated', successHandler);
       this.socket.once('auth_error', errorHandler);
 
-      console.log('🔐 Sending authentication request with token:', token ? 'present' : 'missing');
-      console.log('🔌 Socket ID before auth:', this.socket.id);
-      console.log('🔌 Socket connected:', this.socket.connected);
-      this.socket.emit('authenticate', { token });
+      // If socket is already connected, send auth immediately
+      if (this.socket.connected) {
+        sendAuthRequest();
+      } else {
+        // Wait for connection before sending auth
+        console.log('🔌 Socket not connected, waiting for connection...');
+        this.socket.once('connect', connectHandler);
+        this.socket.connect();
+      }
     });
   }
 

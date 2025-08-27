@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Send, Users, MessageCircle, Circle, Phone, Video } from 'lucide-react';
 import { BASE_URL } from '../config';
 import socketService, { ChatMessage, ChatRoom } from '../services/socket.service';
+import { useSelector } from 'react-redux';
+import { selectUserToken, selectUser, selectIsAuthenticated } from '../store/slices/authSlice';
 
 interface User {
   user_id: string;
@@ -13,6 +15,11 @@ interface User {
 }
 
 const RealTimeChat: React.FC = () => {
+  // Redux selectors
+  const token = useSelector(selectUserToken);
+  const user = useSelector(selectUser);
+  const isAuthenticated = useSelector(selectIsAuthenticated);
+  
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [chatRooms, setChatRooms] = useState<ChatRoom[]>([]);
   const [selectedChat, setSelectedChat] = useState<ChatRoom | null>(null);
@@ -42,18 +49,56 @@ const RealTimeChat: React.FC = () => {
     scrollToBottom();
   }, [messages]);
 
+  // Update document title with unread count
+  useEffect(() => {
+    const unreadCount = getTotalUnreadCount();
+    const originalTitle = document.title;
+    
+    if (unreadCount > 0) {
+      document.title = `(${unreadCount}) ${originalTitle.replace(/^\(\d+\)\s*/, '')}`;
+    } else {
+      document.title = originalTitle.replace(/^\(\d+\)\s*/, '');
+    }
+
+    // Cleanup on unmount
+    return () => {
+      document.title = originalTitle.replace(/^\(\d+\)\s*/, '');
+    };
+  }, [chatRooms]);
+
   const initializeChat = async () => {
     try {
       setConnectionStatus('connecting');
-      const token = localStorage.getItem('token'); // Changed from 'access_token' to 'token'
       
-      if (!token) {
-        console.error('No auth token found');
+      console.log('Auth state check:', {
+        tokenExists: !!token,
+        isAuthenticated,
+        userExists: !!user,
+        userType: user?.user_type
+      });
+      
+      if (!isAuthenticated || !token) {
+        console.error('User not authenticated');
+        console.log('Current user state:', user);
+        console.log('Redux auth state - token exists:', !!token);
+        console.log('Is authenticated:', isAuthenticated);
         setConnectionStatus('disconnected');
         setError('Please login to access messaging');
+        
+        // Redirect to login if not authenticated
+        setTimeout(() => {
+          const currentPath = window.location.pathname;
+          if (currentPath.includes('/client')) {
+            window.location.href = '/login';
+          } else {
+            window.location.href = '/login';
+          }
+        }, 2000);
         return;
       }
 
+      console.log('Token found, initializing chat...');
+      
       // Authenticate with socket
       await socketService.authenticate(token);
       setConnectionStatus('connected');
@@ -80,24 +125,49 @@ const RealTimeChat: React.FC = () => {
     socketService.onNewMessage((message: ChatMessage) => {
       setMessages(prev => [...prev, message]);
       
-      // Update last message in chat rooms
-      setChatRooms(prev => prev.map(room => 
-        room._id === message.chat_id 
-          ? { 
-              ...room, 
-              last_message: {
-                content: message.content,
-                sender_name: message.sender_name,
-                timestamp: message.timestamp
-              }
-            }
-          : room
-      ));
+      // Update last message and unread count in chat rooms
+      setChatRooms(prev => prev.map(room => {
+        if (room._id === message.chat_id) {
+          // Only increment unread count if the message is not from current user
+          const isFromCurrentUser = message.sender_id === currentUser?.user_id;
+          const isCurrentChat = selectedChat?._id === message.chat_id;
+          
+          // Play notification sound for new messages from others
+          if (!isFromCurrentUser && !isCurrentChat) {
+            playNotificationSound();
+            showDesktopNotification(message);
+          }
+          
+          return {
+            ...room, 
+            last_message: {
+              content: message.content,
+              sender_name: message.sender_name,
+              timestamp: message.timestamp
+            },
+            // Increment unread count only if:
+            // 1. Message is not from current user
+            // 2. Chat is not currently selected (auto-read)
+            unread_count: (!isFromCurrentUser && !isCurrentChat) 
+              ? room.unread_count + 1 
+              : room.unread_count
+          };
+        }
+        return room;
+      }));
     });
 
     // Message read status
     socketService.onMessageRead((data) => {
       console.log('Messages read:', data);
+      // Update unread count when messages are marked as read
+      if (data.chat_id) {
+        setChatRooms(prev => prev.map(room => 
+          room._id === data.chat_id 
+            ? { ...room, unread_count: 0 }
+            : room
+        ));
+      }
     });
 
     // Typing indicators
@@ -125,7 +195,8 @@ const RealTimeChat: React.FC = () => {
 
   const fetchCurrentUser = async () => {
     try {
-      const token = localStorage.getItem("token");
+      if (!token) return;
+      
       const response = await fetch(`${BASE_URL}/api/auth/current-user`, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -146,7 +217,8 @@ const RealTimeChat: React.FC = () => {
 
   const fetchChatRooms = async () => {
     try {
-      const token = localStorage.getItem("token");
+      if (!token) return;
+      
       const response = await fetch(`${BASE_URL}/api/chat/list`, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -169,48 +241,38 @@ const RealTimeChat: React.FC = () => {
 
   const fetchAvailableUsers = async () => {
     try {
-      const token = localStorage.getItem("token");
+      if (!token) return;
       
-      // If there's a search query, use search endpoint
-      if (searchQuery && searchQuery.trim().length >= 2) {
-        const response = await fetch(`${BASE_URL}/api/chat/search-users?q=${encodeURIComponent(searchQuery.trim())}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        
-        if (response.ok) {
-          const result = await response.json();
-          setAvailableUsers(result.data?.users || []);
-        }
+      // Use the chat search endpoint for both search and fetching all users
+      const searchUrl = searchQuery && searchQuery.trim().length >= 2 
+        ? `${BASE_URL}/api/chat/search-users?q=${encodeURIComponent(searchQuery.trim())}`
+        : `${BASE_URL}/api/chat/search-users`; // No query to get all available users
+      
+      const response = await fetch(searchUrl, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        setAvailableUsers(result.data?.users || []);
+      } else if (response.status === 403) {
+        console.warn('Access denied to search users - user may not have proper permissions');
+        setAvailableUsers([]);
       } else {
-        // Otherwise, fetch clients that can be messaged
-        const response = await fetch(`${BASE_URL}/api/clients`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        
-        if (response.ok) {
-          const result = await response.json();
-          const clients = result.data || [];
-          
-          // Transform client data to user format
-          const users = clients.map((client: any) => ({
-            user_id: client.user_id || client._id,
-            user_type: 'Client',
-            name: client.name || `${client.first_name || ''} ${client.last_name || ''}`.trim() || 'Unknown Client',
-            email: client.email
-          }));
-          
-          setAvailableUsers(users);
-        }
+        console.error('Failed to fetch available users:', response.status);
+        setAvailableUsers([]);
       }
     } catch (error) {
-      console.error('Failed to fetch available users:', error);
+      console.error('Error fetching available users:', error);
+      setAvailableUsers([]);
     }
   };
 
   const fetchMessages = async (chatId: string) => {
     try {
+      if (!token) return;
+      
       setLoading(true);
-      const token = localStorage.getItem("token");
       const response = await fetch(`${BASE_URL}/api/chat/${chatId}/messages?page=1&limit=50`, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -243,6 +305,13 @@ const RealTimeChat: React.FC = () => {
       // Mark messages as read
       socketService.markAsRead(chat._id);
       
+      // Reset unread count for this chat in the local state
+      setChatRooms(prev => prev.map(room => 
+        room._id === chat._id 
+          ? { ...room, unread_count: 0 }
+          : room
+      ));
+      
     } catch (error) {
       console.error('Failed to select chat:', error);
     }
@@ -251,7 +320,8 @@ const RealTimeChat: React.FC = () => {
   const createNewChat = async (userId: string, userType: string) => {
     console.log('createNewChat called with:', { userId, userType });
     try {
-      const token = localStorage.getItem("token");
+      if (!token) return;
+      
       console.log('Token found:', !!token);
       
       const response = await fetch(`${BASE_URL}/api/chat/create`, {
@@ -393,6 +463,72 @@ const RealTimeChat: React.FC = () => {
     }
   };
 
+  const getTotalUnreadCount = () => {
+    return chatRooms.reduce((total, chat) => total + chat.unread_count, 0);
+  };
+
+  const playNotificationSound = () => {
+    // Create a simple notification sound using Web Audio API
+    try {
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      oscillator.frequency.value = 800;
+      oscillator.type = 'sine';
+      
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+      
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.5);
+    } catch (error) {
+      console.log('Audio notification not supported:', error);
+    }
+  };
+
+  const showDesktopNotification = (message: ChatMessage) => {
+    if ('Notification' in window && Notification.permission === 'granted') {
+      new Notification(`New message from ${message.sender_name}`, {
+        body: message.content,
+        icon: '/favicon.ico',
+        tag: 'chat-message'
+      });
+    } else if ('Notification' in window && Notification.permission !== 'denied') {
+      Notification.requestPermission().then(permission => {
+        if (permission === 'granted') {
+          new Notification(`New message from ${message.sender_name}`, {
+            body: message.content,
+            icon: '/favicon.ico',
+            tag: 'chat-message'
+          });
+        }
+      });
+    }
+  };
+
+  // Show login prompt if not authenticated
+  if (!isAuthenticated || !token) {
+    return (
+      <div className="h-full flex items-center justify-center bg-gray-50 rounded-lg">
+        <div className="text-center p-8">
+          <MessageCircle className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">Authentication Required</h3>
+          <p className="text-gray-600 mb-4">Please login to access messaging</p>
+          <button
+            onClick={() => window.location.href = '/login'}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Go to Login
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="h-full flex bg-white rounded-lg shadow-lg overflow-hidden">
       {/* Sidebar - Chat List */}
@@ -403,6 +539,11 @@ const RealTimeChat: React.FC = () => {
             <div className="flex items-center space-x-2">
               <MessageCircle className="w-5 h-5 text-blue-600" />
               <h2 className="text-lg font-semibold text-gray-900">Messages</h2>
+              {getTotalUnreadCount() > 0 && (
+                <span className="inline-block px-2 py-1 text-xs bg-red-500 text-white rounded-full">
+                  {getTotalUnreadCount()}
+                </span>
+              )}
             </div>
             <div className="flex items-center space-x-2">
               <div className={`w-2 h-2 rounded-full ${getConnectionStatusColor()}`}></div>
@@ -455,15 +596,19 @@ const RealTimeChat: React.FC = () => {
                   onClick={() => selectChat(chat)}
                   className={`p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors ${
                     selectedChat?._id === chat._id ? 'bg-blue-50 border-blue-200' : ''
-                  }`}
+                  } ${chat.unread_count > 0 ? 'bg-blue-25 border-l-4 border-l-blue-500' : ''}`}
                 >
                   <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-medium">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-medium ${
+                      chat.unread_count > 0 ? 'bg-blue-700' : 'bg-blue-600'
+                    }`}>
                       {otherParticipant?.name?.charAt(0)?.toUpperCase() || '?'}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
-                        <h3 className="text-sm font-medium text-gray-900 truncate">
+                        <h3 className={`text-sm text-gray-900 truncate ${
+                          chat.unread_count > 0 ? 'font-bold' : 'font-medium'
+                        }`}>
                           {otherParticipant?.name || 'Unknown User'}
                         </h3>
                         {chat.last_message && (
@@ -476,7 +621,9 @@ const RealTimeChat: React.FC = () => {
                         {otherParticipant?.user_type || 'Unknown'}
                       </p>
                       {chat.last_message && (
-                        <p className="text-sm text-gray-600 truncate">
+                        <p className={`text-sm text-gray-600 truncate ${
+                          chat.unread_count > 0 ? 'font-semibold' : ''
+                        }`}>
                           {chat.last_message.content}
                         </p>
                       )}

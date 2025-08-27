@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Home, Building2, Users, BarChart3, Calendar, FileText, Target, CheckSquare, UserPlus, User, X, Settings, MessageSquare, Send, Bell, MessageCircle, UserCheck } from 'lucide-react';
+import { Home, Building2, Users, BarChart3, Calendar, FileText, Target, CheckSquare, UserPlus, User, X, Settings, MessageSquare, Send, Bell, MessageCircle, UserCheck, Mail, Edit3, FileSignature } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 
 interface SidebarProps {
@@ -22,6 +22,16 @@ const menuItems = [
 	{ id: 'documents', label: 'Documents', icon: FileText },
 	{ id: 'marketing', label: 'Campaigns', icon: Target },
 	{ id: 'calendar', label: 'Calendar', icon: Calendar },
+	{
+		id: 'builder-tools',
+		label: 'Builder Tools',
+		icon: Edit3,
+		children: [
+			{ id: 'sms-builder', label: 'SMS Builder', icon: MessageSquare },
+			{ id: 'email-builder', label: 'Email Builder', icon: Mail },
+			{ id: 'contract-builder', label: 'Contract Builder', icon: FileSignature },
+		],
+	},
 	{
 		id: 'followup-management',
 		label: 'Follow-up Management',
