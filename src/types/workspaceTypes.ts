@@ -2,7 +2,7 @@
 export interface Workspace {
   _id: string;
   name: string;
-  type: "personal" | "shared";
+  type: "personal" | "organization";
   white_label_configurations?: any;
   createdAt?: string;
   updatedAt?: string;
@@ -17,7 +17,7 @@ export interface WorkspaceAvailability {
 
 export interface CreateWorkspaceData {
   name: string;
-  type: "personal" | "shared";
+  type: "personal" | "organization";
   white_label_configurations?: any;
 }
 

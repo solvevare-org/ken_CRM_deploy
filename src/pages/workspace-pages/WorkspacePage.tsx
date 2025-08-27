@@ -250,7 +250,6 @@ export function WorkspacePage() {
                         workspace={ws}
                         onClick={() => {
                           handleWorkspaceClick(ws);
-                          dispatch(setWorkspaceType("organization"));
                         }}
                       />
                     ))}
@@ -271,7 +270,10 @@ export function WorkspacePage() {
                   </p>
                 </div>
                 <Button
-                  onClick={() => navigate("/workspace-details")}
+                  onClick={() => {
+                    navigate("/workspace-details");
+                    dispatch(setWorkspaceType("organization"));
+                  }}
                   className="flex items-center space-x-2"
                 >
                   <Plus className="w-4 h-4" />

@@ -9,11 +9,12 @@ import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   clientSignUpSchema,
-  ClientSignUpSchema
+  ClientSignUpSchema,
 } from "@/schema/clientSignUpSchema";
 import { Eye, EyeOff, Mail, Phone, X } from "lucide-react";
 import { useAppDispatch } from "@/store/hooks";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
+import { setEmail, setVerificationMethod } from "@/store/slices/otherAuthSlice";
 
 const PROPERTY_TYPES = [
   { value: "house", label: "House" },
@@ -41,7 +42,6 @@ const ClientSignUpForm: React.FC = () => {
       last_name: "",
       phone: "",
       birthday: "",
-      profilePic: undefined,
       preferred_contact_method: "email",
       budget_range: { min: "", max: "" },
       preferred_locations: [],
@@ -54,6 +54,7 @@ const ClientSignUpForm: React.FC = () => {
   const [newLocation, setNewLocation] = useState("");
   // redux
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
   //   const {verifyLinkLoading } useSelector;
   const auth = useSelector(selectAuth) as any;
   const {
@@ -74,14 +75,6 @@ const ClientSignUpForm: React.FC = () => {
     // dispatch verify thunk
     dispatch(verifyClientSignupLink(link));
   }, [dispatch, link]);
-
-  useEffect(() => {
-    console.log("loading", verifyLinkLoading);
-    if (verifyLinkData) {
-      // If link is verified, you can pre-fill the form or take other actions
-      console.log("Client signup link verified:", verifyLinkData);
-    }
-  }, [verifyLinkData, verifyLinkLoading]);
 
   const onSubmit = async (data: ClientSignUpSchema) => {
     // build FormData for multipart submission
@@ -116,17 +109,29 @@ const ClientSignUpForm: React.FC = () => {
       // ignore
     }
 
-    // profilePic: react-hook-form gives FileList
-    const pic: any = (data as any).profilePic;
-    if (pic && pic[0]) {
-      formData.append("profilePic", pic[0]);
-    }
-
     // dispatch client signup
     const result = await (dispatch as any)(
       clientSignup({ link: link, formData })
-    );
+    ).unwrap();
     console.log("Client signup result:", result);
+    if (result.success) {
+      // Set email/phone and verification method based on chosen method
+      if (data.preferred_contact_method === "email") {
+        if (data.email) {
+          console.log("Setting email:", data.email);
+          dispatch(setEmail(data.email));
+          dispatch(setVerificationMethod("email"));
+        }
+      } else if (data.preferred_contact_method === "phone") {
+        if (data.phone) {
+          console.log("Setting phone:", data.phone);
+          dispatch(setEmail(data.phone)); // Using email field for phone too
+          dispatch(setVerificationMethod("sms"));
+        }
+      }
+      // Clear user type and navigate to verification page
+      navigate("/verification");
+    }
   };
 
   const addLocation = () => {
@@ -151,12 +156,6 @@ const ClientSignUpForm: React.FC = () => {
     const updated = preferred_locations.filter((loc) => loc !== location);
     setValue("preferred_locations", updated);
   };
-
-  // 👇 Watch profilePic for preview
-  const profilePic = useWatch({
-    control,
-    name: "profilePic",
-  });
 
   // UI states
   const noLinkProvided = !link;
@@ -468,72 +467,6 @@ const ClientSignUpForm: React.FC = () => {
             {errors.confirmPassword.message}
           </p>
         )}
-      </div>
-
-      {/* Profile Pic Upload */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Profile Picture
-        </label>
-
-        <div className="mt-1 flex items-start gap-4">
-          {/* Preview Circle */}
-          <div
-            className={`w-20 h-20 rounded-full overflow-hidden flex items-center justify-center text-gray-400 bg-gray-50 border ${
-              profilePic?.[0]
-                ? "border-gray-200"
-                : "border-dashed border-gray-300"
-            }`}
-          >
-            {profilePic?.[0] ? (
-              <img
-                src={URL.createObjectURL(profilePic[0])}
-                alt="Profile Preview"
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <span className="text-xs text-gray-400">No photo</span>
-            )}
-          </div>
-
-          <div className="flex-1">
-            <div className="relative inline-block">
-              {/* Invisible input covers the button so clicking opens file picker */}
-              <input
-                type="file"
-                accept="image/*"
-                {...register("profilePic")}
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-              />
-              <button
-                type="button"
-                onClick={() => {
-                  /* clicking this button will be handled by the invisible input on top */
-                }}
-                className="px-4 py-2 bg-white border rounded-md text-sm shadow-sm hover:bg-gray-50"
-              >
-                Choose Image
-              </button>
-            </div>
-
-            <p className="mt-2 text-xs text-gray-500">PNG, JPG up to 5MB</p>
-
-            {profilePic?.[0] && (
-              <div className="mt-3 flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => setValue("profilePic", undefined)}
-                  className="px-3 py-1 bg-red-50 text-red-600 rounded-md text-sm"
-                >
-                  Remove
-                </button>
-                <span className="text-sm text-gray-700">
-                  {profilePic[0].name}
-                </span>
-              </div>
-            )}
-          </div>
-        </div>
       </div>
 
       {/* Submit */}
