@@ -11,7 +11,7 @@ export const setAuthTokenGetter = (getter: () => string | undefined): void => {
 // Configure axios defaults
 // Use the page's hostname so API requests target the same domain (lvh.me / subdomains)
 // — this ensures cookies set for ".lvh.me" are sent with XHRs from subdomains like
-// hzuaifa-personal-4.lvh.me. Fall back to 72.69.97.98 when window is not available.
+// hzuaifa-personal-4.lvh.me. Fall back to 72.60.97.98 when window is not available.
 export const getApiBaseUrl = (): string => {
   try {
     if (
@@ -19,7 +19,7 @@ export const getApiBaseUrl = (): string => {
       window.location &&
       window.location.hostname
     ) {
-      const host = window.location.hostname; // e.g. hzuaifa-personal-4.lvh.me or 72.69.97.98
+      const host = window.location.hostname; // e.g. hzuaifa-personal-4.lvh.me or 72.60.97.98
       // Backend default port in dev
       const apiPort = BASE_URL_PORT;
       return `http://${host}:${apiPort}`;
