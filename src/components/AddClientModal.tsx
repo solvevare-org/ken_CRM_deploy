@@ -23,7 +23,7 @@ const AddClientModal: React.FC<AddClientModalProps> = ({
       const token = localStorage.getItem("token");
       const response = await fetch(
         `${
-          import.meta.env.VITE_API_BASE_URL || "https://localhost:3000"
+          import.meta.env.VITE_API_BASE_URL || "https://72.69.97.98:3000"
         }/api/clients/invite-link`,
         {
           method: "POST",

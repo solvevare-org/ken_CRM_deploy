@@ -220,7 +220,7 @@ function App() {
     if (parts.length >= 3) {
       const baseDomain = parts.slice(-2).join(".");
       console.log("Base domain:", baseDomain);
-      return baseDomain === "crm.localhost" && parts[0] !== "crm";
+      return baseDomain === "crm.72.69.97.98" && parts[0] !== "crm";
     }
     return false;
   };
@@ -278,8 +278,8 @@ function App() {
 
     if (checking) return <div>Loading...</div>;
 
-    // For development: allow access without token if on localhost
-    const isDevelopment = window.location.hostname.includes("localhost");
+    // For development: allow access without token if on 72.69.97.98
+    const isDevelopment = window.location.hostname.includes("72.69.97.98");
 
     if (!token && !isAuthenticated && !isDevelopment) {
       return <LoginPage />;
