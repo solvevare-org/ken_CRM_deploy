@@ -220,7 +220,7 @@ function App() {
     if (parts.length >= 3) {
       const baseDomain = parts.slice(-2).join(".");
       console.log("Base domain:", baseDomain);
-      return baseDomain === "crm.72.60.97.98" && parts[0] !== "crm";
+      return baseDomain === "crm.crm.vire-s.com" && parts[0] !== "crm";
     }
     return false;
   };
@@ -278,8 +278,8 @@ function App() {
 
     if (checking) return <div>Loading...</div>;
 
-    // For development: allow access without token if on 72.60.97.98
-    const isDevelopment = window.location.hostname.includes("72.60.97.98");
+    // For development: allow access without token if on crm.vire-s.com
+    const isDevelopment = window.location.hostname.includes("crm.vire-s.com");
 
     if (!token && !isAuthenticated && !isDevelopment) {
       return <LoginPage />;
