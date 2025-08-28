@@ -496,7 +496,7 @@ function App() {
                 <Route path="/form/:linkId" element={<PublicLeadForm />} />
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/signup-options" element={<SignupOptionsPage />} />
-                <Route path="/client-signup/:link" element={<ClientSignUp />} />
+                <Route path="/clientForm/:link" element={<ClientSignUp />} />
                 <Route
                   path="/account-verification-options"
                   element={<AccountVerificationOptionsPage />}

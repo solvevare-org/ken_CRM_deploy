@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import api, { handleApiError } from "@/utils/api"; // Adjust path as needed
+import axios, { AxiosError } from "axios";
 import { ApiResponse, AuthState, LoginData, User } from "@/types/authTypes";
 import type { SignUpSchemaType } from "@/schema/signupSchema";
 import { toast } from "react-toastify";
@@ -74,23 +75,29 @@ export const verifyClientSignupLink = createAsyncThunk<
 export const clientSignup = createAsyncThunk<
   ApiResponse,
   { link: string; formData: FormData },
-  { rejectValue: string }
+  { rejectValue: { message: string; errors?: any } }
 >("auth/clientSignup", async (payload, { rejectWithValue }) => {
   try {
     const { link, formData } = payload;
     const response = await api.post<ApiResponse>(
       `${BASE_URL}/client-signup/${link}`,
-      formData,
-      {
-        headers: { "Content-Type": "multipart/form-data" },
-      }
+      formData
     );
     console.log("client signup", response);
     return response.data;
   } catch (error) {
     console.log("Error during client signup", error);
+    // If it's an axios error with structured response, forward message + errors
+    if (axios.isAxiosError(error)) {
+      const axiosErr = error as AxiosError<any>;
+      const resp = axiosErr.response;
+      const message = resp?.data?.message || handleApiError(error);
+      const errors = resp?.data?.errors;
+      return rejectWithValue({ message, errors });
+    }
+
     const errorMessage = handleApiError(error);
-    return rejectWithValue(errorMessage);
+    return rejectWithValue({ message: errorMessage });
   }
 });
 
@@ -128,8 +135,8 @@ export const getCurrentUser = createAsyncThunk<
   }
 });
 
-// Initial state
-const initialState: AuthState = {
+// Initial state (allow storing structured field errors returned by the server)
+const initialState = {
   user: null,
   token: null,
   isAuthenticated: false,
@@ -140,11 +147,12 @@ const initialState: AuthState = {
   // client signup / link verification state
   clientSignupLoading: false,
   clientSignupError: null,
+  clientSignupFieldErrors: null,
   clientSignupSuccess: false,
   verifyLinkLoading: false,
   verifyLinkError: null,
   verifyLinkData: null,
-};
+} as AuthState & { clientSignupFieldErrors?: any | null };
 
 // Auth slice
 const authSlice = createSlice({
@@ -230,7 +238,16 @@ const authSlice = createSlice({
       })
       .addCase(clientSignup.rejected, (state, action) => {
         state.clientSignupLoading = false;
-        state.clientSignupError = action.payload || "Client signup failed";
+        // action.payload has shape { message, errors? }
+        if (action.payload && typeof action.payload === "object") {
+          state.clientSignupError =
+            action.payload.message || "Client signup failed";
+          state.clientSignupFieldErrors = action.payload.errors || null;
+        } else {
+          state.clientSignupError =
+            (action.payload as any) || "Client signup failed";
+          state.clientSignupFieldErrors = null;
+        }
         state.clientSignupSuccess = false;
       });
 

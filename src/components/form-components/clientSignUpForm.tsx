@@ -31,6 +31,7 @@ const ClientSignUpForm: React.FC = () => {
     setValue,
     getValues,
     control,
+    setError, // Add setError from useForm
     formState: { errors },
   } = useForm<ClientSignUpSchema>({
     resolver: zodResolver(clientSignUpSchema),
@@ -52,36 +53,31 @@ const ClientSignUpForm: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [newLocation, setNewLocation] = useState("");
-  // redux
+  // Remove setFieldError since we'll use setError from react-hook-form
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  //   const {verifyLinkLoading } useSelector;
   const auth = useSelector(selectAuth) as any;
   const {
     verifyLinkLoading,
     verifyLinkError,
     verifyLinkData,
     clientSignupLoading,
-    clientSignupSuccess,
     clientSignupError,
   } = auth || {};
 
   const { link } = useParams<{ link: string }>();
 
-  // verify link on mount when link exists
+  // Verify link on mount when link exists
   useEffect(() => {
     if (!link) return;
-    // console.log("Verifying client signup link:", link);
-    // dispatch verify thunk
     dispatch(verifyClientSignupLink(link));
   }, [dispatch, link]);
 
   const onSubmit = async (data: ClientSignUpSchema) => {
-    // build FormData for multipart submission
     if (!link) return;
 
     const formData = new FormData();
-    // append simple fields
+    // Append simple fields
     formData.append("email", data.email || "");
     formData.append("password", data.password || "");
     formData.append("confirmPassword", data.confirmPassword || "");
@@ -94,7 +90,7 @@ const ClientSignUpForm: React.FC = () => {
       data.preferred_contact_method || ""
     );
 
-    // complex fields: append as JSON strings
+    // Append complex fields as JSON strings
     try {
       formData.append("budget_range", JSON.stringify(data.budget_range || {}));
       formData.append(
@@ -106,31 +102,72 @@ const ClientSignUpForm: React.FC = () => {
         JSON.stringify(data.property_type_interest || [])
       );
     } catch (e) {
-      // ignore
+      console.error("Error serializing complex fields:", e);
     }
 
-    // dispatch client signup
-    const result = await (dispatch as any)(
-      clientSignup({ link: link, formData })
-    ).unwrap();
-    console.log("Client signup result:", result);
-    if (result.success) {
-      // Set email/phone and verification method based on chosen method
-      if (data.preferred_contact_method === "email") {
-        if (data.email) {
-          console.log("Setting email:", data.email);
+    console.log(data);
+
+    try {
+      const result = await dispatch(clientSignup({ link, formData })).unwrap();
+      console.log("Client signup result:", result);
+
+      if (result.success) {
+        // Set email/phone and verification method based on chosen method
+        if (data.preferred_contact_method === "email" && data.email) {
           dispatch(setEmail(data.email));
           dispatch(setVerificationMethod("email"));
-        }
-      } else if (data.preferred_contact_method === "phone") {
-        if (data.phone) {
-          console.log("Setting phone:", data.phone);
-          dispatch(setEmail(data.phone)); // Using email field for phone too
+        } else if (data.preferred_contact_method === "phone" && data.phone) {
+          dispatch(setEmail(data.phone)); // Using email field for phone
           dispatch(setVerificationMethod("sms"));
         }
+        navigate("/verification");
       }
-      // Clear user type and navigate to verification page
-      navigate("/verification");
+    } catch (error: any) {
+      // Handle field-specific errors from the server
+      // 1) Thunk reject payload when using createAsyncThunk(rejectWithValue)
+      if (error && typeof error === "object" && (error as any).errors) {
+        const errs = (error as any).errors;
+        if (Array.isArray(errs)) {
+          errs.forEach((errObj: any) => {
+            Object.entries(errObj).forEach(([field, message]) => {
+              setError(field as keyof ClientSignUpSchema, {
+                type: "server",
+                message: String(message),
+              });
+            });
+          });
+          return;
+        }
+      }
+
+      // 2) Axios error shape (if dispatch threw the original axios error)
+      if (error?.response?.data?.errors) {
+        const errs = error.response.data.errors;
+        if (Array.isArray(errs)) {
+          errs.forEach((errObj: any) => {
+            Object.entries(errObj).forEach(([field, message]) => {
+              setError(field as keyof ClientSignUpSchema, {
+                type: "server",
+                message: String(message),
+              });
+            });
+          });
+          return;
+        }
+      }
+
+      // 3) Thunk reject when rejectWithValue returned a { message } object
+      if (error && typeof error === "object" && (error as any).message) {
+        // show a generic form-level error using setError on a known field (email) or console
+        setError("email" as keyof ClientSignUpSchema, {
+          type: "server",
+          message: (error as any).message,
+        });
+        return;
+      }
+
+      // Fallback for other error shapes
+      console.error("Signup error:", error);
     }
   };
 
@@ -162,7 +199,7 @@ const ClientSignUpForm: React.FC = () => {
   const linkVerified =
     !verifyLinkLoading && !verifyLinkError && !!verifyLinkData;
 
-  // If no link present show invalid UI
+  // If no link provided, show invalid UI
   if (noLinkProvided) {
     return (
       <div className="p-6 bg-yellow-50 border border-yellow-200 rounded-md">
@@ -175,7 +212,7 @@ const ClientSignUpForm: React.FC = () => {
     );
   }
 
-  // while verifying
+  // While verifying
   if (verifyLinkLoading) {
     return (
       <div className="p-6 bg-white border border-gray-200 rounded-md">
@@ -184,7 +221,7 @@ const ClientSignUpForm: React.FC = () => {
     );
   }
 
-  // verification failed
+  // Verification failed
   if (!verifyLinkLoading && verifyLinkError) {
     return (
       <div className="p-6 bg-red-50 border border-red-200 rounded-md">
@@ -196,9 +233,8 @@ const ClientSignUpForm: React.FC = () => {
     );
   }
 
-  // only render form when verified
+  // Only render form when verified
   if (!linkVerified) {
-    // fallback while waiting or if verifyLinkData not present
     return <div className="p-6">Preparing form...</div>;
   }
 
@@ -319,15 +355,33 @@ const ClientSignUpForm: React.FC = () => {
             type="number"
             {...register("budget_range.min")}
             placeholder="Min"
-            className="w-1/2 px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500"
+            className={`w-1/2 px-4 py-3 rounded-lg border ${
+              errors.budget_range?.min
+                ? "border-red-300 bg-red-50"
+                : "border-gray-300"
+            } focus:ring-2 focus:ring-blue-500`}
           />
           <input
             type="number"
             {...register("budget_range.max")}
             placeholder="Max"
-            className="w-1/2 px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500"
+            className={`w-1/2 px-4 py-3 rounded-lg border ${
+              errors.budget_range?.max
+                ? "border-red-300 bg-red-50"
+                : "border-gray-300"
+            } focus:ring-2 focus:ring-blue-500`}
           />
         </div>
+        {errors.budget_range?.min && (
+          <p className="mt-1 text-sm text-red-600">
+            {errors.budget_range.min.message}
+          </p>
+        )}
+        {errors.budget_range?.max && (
+          <p className="mt-1 text-sm text-red-600">
+            {errors.budget_range.max.message}
+          </p>
+        )}
       </div>
 
       {/* Preferred Contact Method */}
@@ -337,11 +391,20 @@ const ClientSignUpForm: React.FC = () => {
         </label>
         <select
           {...register("preferred_contact_method")}
-          className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500"
+          className={`w-full px-4 py-3 rounded-lg border ${
+            errors.preferred_contact_method
+              ? "border-red-300 bg-red-50"
+              : "border-gray-300"
+          } focus:ring-2 focus:ring-blue-500`}
         >
           <option value="email">Email</option>
           <option value="phone">Phone</option>
         </select>
+        {errors.preferred_contact_method && (
+          <p className="mt-1 text-sm text-red-600">
+            {errors.preferred_contact_method.message}
+          </p>
+        )}
       </div>
 
       {/* Property Type Interest */}
@@ -364,6 +427,11 @@ const ClientSignUpForm: React.FC = () => {
             </label>
           ))}
         </div>
+        {errors.property_type_interest && (
+          <p className="mt-1 text-sm text-red-600">
+            {errors.property_type_interest.message}
+          </p>
+        )}
       </div>
 
       {/* Preferred Locations */}
@@ -408,6 +476,11 @@ const ClientSignUpForm: React.FC = () => {
               </span>
             ))}
           </div>
+        )}
+        {errors.preferred_locations && (
+          <p className="mt-1 text-sm text-red-600">
+            {errors.preferred_locations.message}
+          </p>
         )}
       </div>
 
@@ -473,21 +546,16 @@ const ClientSignUpForm: React.FC = () => {
       <button
         type="submit"
         className="w-full bg-blue-500 hover:bg-blue-600 text-white font-medium py-4 px-6 rounded-lg"
+        disabled={clientSignupLoading}
       >
-        Create Account
+        {clientSignupLoading ? "Submitting..." : "Create Account"}
       </button>
 
-      {/* submission status */}
-      {clientSignupLoading && (
-        <div className="mt-3 text-sm text-gray-700">Submitting signup...</div>
-      )}
-      {clientSignupSuccess && (
-        <div className="mt-3 text-sm text-green-700">
-          Signup successful. You may now sign in.
+      {/* Generic submission error */}
+      {clientSignupError && !errors.email && !errors.password && (
+        <div className="mt-3 border border-red-300 bg-red-50 p-3 text-center text-sm text-red-700">
+          {clientSignupError}
         </div>
-      )}
-      {clientSignupError && (
-        <div className="mt-3 text-sm text-red-700">{clientSignupError}</div>
       )}
     </form>
   );

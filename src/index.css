@@ -144,3 +144,14 @@ button:active {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Added custom scrollbar hiding utility */
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
