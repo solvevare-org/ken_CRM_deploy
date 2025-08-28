@@ -41,7 +41,7 @@ export const login = createAsyncThunk<
   try {
     const response = await api.post<
       ApiResponse<{ token: string; user_type: string; user: User }>
-    >(`/api/auth/login`, loginData);
+    >(`${BASE_URL}/login`, loginData);
     toast.success(response.data.message || "Login successful");
     console.log("login response", response);
     return response.data;

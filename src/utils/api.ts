@@ -1,6 +1,6 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
 import { ApiErrorResponse } from "../types";
-import { BASE_URL } from "../config";
+import { BASE_URL, BASE_URL_PORT } from "../config";
 
 // Token getter is injected from the app (e.g., after store is created)
 let authTokenGetter: (() => string | undefined) | null = null;
@@ -21,17 +21,17 @@ export const getApiBaseUrl = (): string => {
     ) {
       const host = window.location.hostname; // e.g. hzuaifa-personal-4.lvh.me or localhost
       // Backend default port in dev
-      const apiPort = "3000";
+      const apiPort = BASE_URL_PORT;
       return `http://${host}:${apiPort}`;
     }
   } catch (e) {
     // ignore and fall back
   }
-  return "http://localhost:3000";
+  return BASE_URL;
 };
 
 const api = axios.create({
-  baseURL: getApiBaseUrl(),
+  baseURL: BASE_URL,
   withCredentials: true, // For HTTP-only cookies
 });
 

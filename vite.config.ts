@@ -15,7 +15,7 @@ export default defineConfig({
     },
   },
   server: {
-    host: 'crm.vire-s.com',
+    host: true,
     port: 5173,
     // https: true, // Uncomment and configure as below if you need HTTPS
     // https: {

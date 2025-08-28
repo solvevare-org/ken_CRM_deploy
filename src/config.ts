@@ -1,6 +1,7 @@
 // Centralized config for environment variables
-export const BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://localhost:3000";
+export const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
 export const CRM_BASE_DOMAIN = import.meta.env.VITE_CRM_BASE_DOMAIN || "crm.vire-s.com";
+export const BASE_URL_PORT = import.meta.env.VITE_API_BASE_URL_PORT || "3000";
 
 // Production domain configuration
 export const PRODUCTION_DOMAIN = "crm.vire-s.com";
