@@ -23,7 +23,7 @@ const AddClientModal: React.FC<AddClientModalProps> = ({
       const token = localStorage.getItem("token");
       const response = await fetch(
         `${
-          import.meta.env.VITE_API_BASE_URL || "https://crm.vire-s.com/api/"
+          import.meta.env.VITE_API_BASE_URL || "https://crm.vire-s.com"
         }/api/clients/invite-link`,
         {
           method: "POST",
