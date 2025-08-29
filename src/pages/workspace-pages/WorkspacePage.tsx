@@ -21,10 +21,8 @@ import {
   getWorkspaces,
   selectCurrentWorkspace,
   setWorkspaceType,
-  selectWorkspace,
 } from "@/store/slices/workspaceSlice";
 import { logout, selectUser } from "@/store/slices/authSlice";
-import { toast } from "react-toastify";
 
 export function WorkspacePage() {
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -40,7 +38,6 @@ export function WorkspacePage() {
   const dispatch = useAppDispatch();
   const user = useAppSelector(selectUser);
   const currentWorkspace = useAppSelector(selectCurrentWorkspace);
-  console.log("serserasfasdfas", user);
 
   const handleLogout = () => {
     dispatch(logout());
@@ -64,7 +61,9 @@ export function WorkspacePage() {
             (ws: any) => ws.type === "organization" && !ws.invitedPending
           );
           const pending = workspaces.filter((ws: any) => ws.invitedPending);
-
+          console.log("personal", personal);
+          console.log("organization", organization);
+          console.log("pending", pending);
           setPersonalWorkspaces(personal);
           setOrganizationWorkspaces(organization);
           setPendingInvites(pending);
@@ -81,6 +80,7 @@ export function WorkspacePage() {
 
   // Navigate to workspace subdomain
   const handleWorkspaceClick = async (workspace: any) => {
+    console.log(workspace, "workspace clicked");
     // Normalize workspace slug
     const slug = workspace.name
       .toLowerCase()
@@ -94,20 +94,7 @@ export function WorkspacePage() {
     const host = `${slug}.${CRM_BASE_DOMAIN}${port ? `:${port}` : ""}`;
     const targetUrl = `${protocol}//${host}/realtor`;
 
-    try {
-      // Ask backend to select workspace (backend may set cookie/session for subdomain)
-      const res = await dispatch(selectWorkspace(workspace._id)).unwrap();
-      console.log("selectWorkspace response", res);
-
-      // On success, navigate to the workspace subdomain which will perform a full reload
-      window.location.assign(targetUrl);
-    } catch (err: any) {
-      console.error("Failed to select workspace before redirect:", err);
-      // Fallback: still redirect (user may rely on cookie-less auth) or show error
-      toast.error(
-        err.message || "Failed to switch workspace. Please try again."
-      );
-    }
+    window.location.assign(targetUrl);
   };
 
   // Placeholder handlers for pending invites
@@ -248,15 +235,20 @@ export function WorkspacePage() {
                   </div>
                 ) : (
                   <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {personalWorkspaces.map((ws) => (
-                      <WorkspaceCard
-                        key={ws.id}
-                        workspace={ws}
-                        onClick={() => {
-                          handleWorkspaceClick(ws);
-                        }}
-                      />
-                    ))}
+                    {personalWorkspaces.map(
+                      (ws) => (
+                        console.log("ws", ws),
+                        (
+                          <WorkspaceCard
+                            key={ws.id}
+                            workspace={ws}
+                            onClick={() => {
+                              handleWorkspaceClick(ws);
+                            }}
+                          />
+                        )
+                      )
+                    )}
                   </div>
                 )}
               </div>
