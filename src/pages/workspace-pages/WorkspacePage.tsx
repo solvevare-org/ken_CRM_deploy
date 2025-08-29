@@ -235,20 +235,15 @@ export function WorkspacePage() {
                   </div>
                 ) : (
                   <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {personalWorkspaces.map(
-                      (ws) => (
-                        console.log("ws", ws),
-                        (
-                          <WorkspaceCard
-                            key={ws.id}
-                            workspace={ws}
-                            onClick={() => {
-                              handleWorkspaceClick(ws);
-                            }}
-                          />
-                        )
-                      )
-                    )}
+                    {personalWorkspaces.map((ws) => (
+                      <WorkspaceCard
+                        key={ws.id}
+                        workspace={ws}
+                        onClick={() => {
+                          handleWorkspaceClick(ws);
+                        }}
+                      />
+                    ))}
                   </div>
                 )}
               </div>
