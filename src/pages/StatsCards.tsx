@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Building2, Users, TrendingUp } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
@@ -11,11 +11,15 @@ const StatsCards: React.FC = () => {
   const { leadCount, clientCount, propertyCount } = useAppSelector(
     selectDashboardCounts
   );
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     // Fetch dashboard counts on mount if not yet loaded
     if (leadCount === 0 && clientCount === 0 && propertyCount === 0) {
-      dispatch(dashboardCounts());
+      setIsLoading(true);
+      dispatch(dashboardCounts()).finally(() => {
+        setIsLoading(false);
+      });
     }
   }, [dispatch, leadCount, clientCount, propertyCount]);
 

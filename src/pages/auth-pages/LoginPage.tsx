@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Mail, Lock, Sparkles, Zap } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { selectIsLoading, login, clearError } from "@/store/slices/authSlice";
+import { login, clearError } from "@/store/slices/authSlice";
 import { CRM_BASE_DOMAIN } from "@/config";
 import { setEmail } from "@/store/slices/otherAuthSlice";
 
@@ -14,12 +14,13 @@ export function LoginPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null); // Explicitly type error as string | null
+  const authError = useAppSelector((state) => state.auth.error);
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
 
   useEffect(() => {
     dispatch(clearError());
-  }, [error]);
+  }, [authError]);
 
   const handleWorkspaceClick = (workspace: any) => {
     const slug = workspace.name
