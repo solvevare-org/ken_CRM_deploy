@@ -21,10 +21,8 @@ import {
   getWorkspaces,
   selectCurrentWorkspace,
   setWorkspaceType,
-  selectWorkspace,
 } from "@/store/slices/workspaceSlice";
 import { logout, selectUser } from "@/store/slices/authSlice";
-import { toast } from "react-toastify";
 
 export function WorkspacePage() {
   const [showUserMenu, setShowUserMenu] = useState(false);
