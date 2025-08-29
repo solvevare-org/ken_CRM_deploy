@@ -102,7 +102,6 @@ const ClientPortal: React.FC<{ initialPage?: string }> = ({
       case "favorites":
         return (
           <Favorites
-            favoriteProperties={favoriteProperties}
             onToggleFavorite={toggleFavorite}
           />
         );

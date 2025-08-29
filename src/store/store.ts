@@ -9,6 +9,7 @@ import realtorReducer from "./slices/realtorSlice";
 import authReducer from "./slices/authSlice"; // Adjust path as needed
 import otherAuthReducer from "./slices/otherAuthSlice";
 import workspaceReducer from "./slices/workspaceSlice";
+import bookmarkReducer from "./slices/bookmarkSlice";
 import { setAuthTokenGetter } from "@/utils/api";
 
 // Persist configuration for auth slice
@@ -46,6 +47,7 @@ const store = configureStore({
     otherAuth: otherAuthReducer,
     realtor: persistedRealtorReducer,
     workspace: workspaceReducer,
+    bookmark: bookmarkReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
