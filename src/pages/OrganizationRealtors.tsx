@@ -1,0 +1,478 @@
+import React, { useState, useEffect } from "react";
+import { Search, Plus, Phone, Mail, User, Calendar, Eye } from "lucide-react";
+import { UrlModal } from "../components/UrlModel";
+import AddClientModal from "../components/AddClientModal";
+import ClientDetailsModal from "@/components/realtor-dashboard/ClientDetailModel";
+import { useAppDispatch } from "@/store/hooks";
+import { fetchClients } from "@/store/slices/realtorSlice"; // Adjust the import path as needed
+import { toast } from "react-toastify";
+
+export interface Client {
+  _id: string;
+  type?: "buyer" | "seller" | "both" | string; // Allow string for flexibility
+  status: "active" | "potential" | "closed" | string; // Allow string for flexibility
+  preferred_locations?: string[];
+  preferred_contact_method?: string;
+  createdAt: string;
+  profile_pic?: string | null;
+  budget_range?: { min?: number; max?: number };
+  property_type_interest?: string[];
+  birthday?: Date;
+  user: {
+    email: string;
+    first_name: string;
+    last_name: string;
+    phone: string;
+    name: string;
+  };
+}
+
+const Clients: React.FC = () => {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [typeFilter, setTypeFilter] = useState("all");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isAddClientModalOpen, setIsAddClientModalOpen] = useState(false);
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const [url] = useState("");
+  const [clients, setClients] = useState<Client[]>([]);
+  const [loading, setLoading] = useState(true);
+  // const [error, setError] = useState<string | null>(null);
+  const dispatch = useAppDispatch();
+
+  // Fetch clients from API
+  const loadClients = async () => {
+    try {
+      setLoading(true);
+      const result: any = await dispatch(fetchClients()).unwrap();
+
+      // Normalize the response to always get an array
+      let clientsArray: any[] = [];
+      if (Array.isArray(result)) {
+        clientsArray = result;
+      } else if (result && Array.isArray(result.data)) {
+        clientsArray = result.data;
+      } else if (result && result.data && Array.isArray(result.data.data)) {
+        clientsArray = result.data.data;
+      }
+
+      const parsePreferredLocations = (val: any): string[] => {
+        if (!val) return [];
+        if (Array.isArray(val)) {
+          if (val.length === 1 && typeof val[0] === "string") {
+            try {
+              const parsed = JSON.parse(val[0]);
+              if (Array.isArray(parsed)) return parsed.map(String);
+            } catch (e) {
+              console.warn("Failed to parse preferred_locations:", val[0], e);
+              return val.map(String);
+            }
+          }
+          return val.map(String);
+        }
+        if (typeof val === "string") {
+          try {
+            const parsed = JSON.parse(val);
+            if (Array.isArray(parsed)) return parsed.map(String);
+          } catch (e) {
+            console.warn("Failed to parse preferred_locations string:", val, e);
+            return val
+              .split(",")
+              .map((s) => s.trim())
+              .filter(Boolean);
+          }
+        }
+        return [];
+      };
+
+      const transformedClients = clientsArray.map((client: any) => {
+        const src = client.user || client || {};
+        const firstName =
+          src.first_name || src.firstName || src.name?.split?.(" ")?.[0] || "";
+        const lastName =
+          src.last_name ||
+          src.lastName ||
+          src.name?.split?.(" ")?.slice(1).join(" ") ||
+          "";
+        const name = (
+          firstName && lastName
+            ? `${firstName} ${lastName}`
+            : firstName || lastName || "Unknown"
+        ).trim();
+
+        return {
+          _id: client._id || client.id || src._id || src.id || "",
+          type: client.type || src.type || "buyer", // Default to "buyer"
+          status: (client.status || src.status || "potential").toLowerCase(),
+          properties: client.properties || src.properties || [],
+          preferred_locations: parsePreferredLocations(
+            client.preferred_locations || src.preferred_locations
+          ),
+          preferred_contact_method:
+            client.preferred_contact_method ||
+            src.preferred_contact_method ||
+            "",
+          createdAt:
+            client.createdAt || src.createdAt || new Date().toISOString(),
+          profile_pic: client.profile_pic || src.profile_pic || null,
+          budget_range: client.budget_range || src.budget_range || undefined,
+          property_type_interest:
+            client.property_type_interest || src.property_type_interest || [],
+          birthday:
+            client.birthday || src.birthday
+              ? new Date(client.birthday || src.birthday)
+              : undefined,
+          user: src.email
+            ? {
+                email: src.email,
+                first_name: firstName,
+                last_name: lastName,
+                phone: src.phone || "",
+                name,
+              }
+            : undefined,
+        } as Client;
+      });
+
+      setClients(transformedClients);
+    } catch (err) {
+      toast.error("No Client Found");
+      setClients([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch clients when component mounts
+  useEffect(() => {
+    loadClients();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "active":
+        return "bg-emerald-100 text-emerald-800 border-emerald-200";
+      case "potential":
+        return "bg-yellow-100 text-yellow-800 border-yellow-200";
+      case "inactive":
+        return "bg-gray-100 text-gray-800 border-gray-200";
+      default:
+        return "bg-gray-100 text-gray-800 border-gray-200";
+    }
+  };
+
+  const getTypeColor = (type: string) => {
+    switch (type) {
+      case "buyer":
+        return "bg-blue-100 text-blue-800";
+      case "seller":
+        return "bg-purple-100 text-purple-800";
+      case "both":
+        return "bg-indigo-100 text-indigo-800";
+      default:
+        return "bg-gray-100 text-gray-800";
+    }
+  };
+
+  const filteredClients = clients.filter((client) => {
+    const q = searchTerm.trim().toLowerCase();
+    const matchesSearch =
+      q === "" ||
+      [
+        client.user?.name,
+        client.user?.first_name,
+        client.user?.last_name,
+        client.user?.email,
+        client.user?.phone,
+      ].some((field) =>
+        field ? String(field).toLowerCase().includes(q) : false
+      );
+
+    const matchesType = typeFilter === "all" || client.type === typeFilter;
+    return matchesSearch && matchesType;
+  });
+
+  return (
+    <div className="p-4 lg:p-6 space-y-4 lg:space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-xl lg:text-2xl font-bold text-gray-900">
+            Clients
+          </h1>
+          <p className="text-sm lg:text-base text-gray-600 mt-1">
+            Manage your client relationships
+          </p>
+        </div>
+        <button
+          onClick={() => setIsModalOpen(true)}
+          className="mt-4 sm:mt-0 inline-flex items-center px-3 lg:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm lg:text-base"
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          Add Client
+        </button>
+      </div>
+
+      {/* Filters */}
+      <div className="bg-white p-4 lg:p-6 rounded-lg shadow-sm border border-gray-100">
+        <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
+          {/* Search */}
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search clients..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 text-sm lg:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+
+          {/* Type Filter */}
+          <select
+            value={typeFilter}
+            onChange={(e) => setTypeFilter(e.target.value)}
+            className="px-3 lg:px-4 py-2 text-sm lg:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          >
+            <option value="all">All Types</option>
+            <option value="buyer">Buyer</option>
+            <option value="seller">Seller</option>
+            <option value="both">Both</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Loading State */}
+      {loading ? (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
+          <div className="flex justify-center items-center h-64">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            <span className="ml-4 text-gray-600">Loading clients...</span>
+          </div>
+        </div>
+      ) : (
+        /* Clients List */
+        <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
+          {/* Mobile Cards View */}
+          <div className="block lg:hidden">
+            {filteredClients.map((client) => (
+              <div
+                key={client._id}
+                className="p-4 border-b border-gray-200 last:border-b-0"
+              >
+                <div className="flex items-start space-x-3">
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
+                    {client.profile_pic !== null ? (
+                      <img
+                        src={client.profile_pic}
+                        alt="Profile"
+                        className="w-10 h-10 object-cover"
+                      />
+                    ) : (
+                      <User className="w-5 h-5 text-gray-600" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h3 className="text-sm font-medium text-gray-900">
+                          {client.user?.first_name} {client.user?.last_name}
+                        </h3>
+                        <p className="text-xs text-gray-500">
+                          {client.user?.email || "No email"}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {client.user?.phone || "No phone"}
+                        </p>
+                      </div>
+                      <div className="flex flex-col items-end space-y-1">
+                        <span
+                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getTypeColor(
+                            client.type || "buyer"
+                          )}`}
+                        >
+                          {client.type || "Buyer"}
+                        </span>
+                        <span
+                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border ${getStatusColor(
+                            client.status || "potential"
+                          )}`}
+                        >
+                          {client.status || "Potential"}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="mt-2 flex items-center justify-between">
+                      <div className="flex space-x-2">
+                        {client.user?.phone && (
+                          <button className="text-blue-600 hover:text-blue-900">
+                            <Phone className="w-4 h-4" />
+                          </button>
+                        )}
+                        {client.user?.email && (
+                          <button className="text-blue-600 hover:text-blue-900">
+                            <Mail className="w-4 h-4" />
+                          </button>
+                        )}
+                        <button className="text-blue-600 hover:text-blue-900">
+                          <Calendar className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => setSelectedClient(client)}
+                          className="text-blue-600 hover:text-blue-900"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop Table View */}
+          <div className="hidden lg:block overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Client
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Contact
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Type
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {filteredClients.map((client) => (
+                  <tr key={client._id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden">
+                          {client.profile_pic !== null ? (
+                            <img
+                              src={client.profile_pic}
+                              alt="Profile"
+                              className="w-10 h-10 object-cover"
+                            />
+                          ) : (
+                            <User className="w-5 h-5 text-gray-600" />
+                          )}
+                        </div>
+                        <div className="ml-4">
+                          <div className="text-sm font-medium text-gray-900">
+                            {client.user?.first_name} {client.user?.last_name}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">
+                        {client.user?.email || "No email"}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {client.user?.phone || "No phone"}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span
+                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getTypeColor(
+                          client.type || "buyer"
+                        )}`}
+                      >
+                        {client.type || "Buyer"}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span
+                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border ${getStatusColor(
+                          client.status || "potential"
+                        )}`}
+                      >
+                        {client.status || "Potential"}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                      {client.user?.phone && (
+                        <button className="text-blue-600 hover:text-blue-900">
+                          <Phone className="w-5 h-5" />
+                        </button>
+                      )}
+                      {client.user?.email && (
+                        <button className="text-blue-600 hover:text-blue-900">
+                          <Mail className="w-5 h-5" />
+                        </button>
+                      )}
+                      <button className="text-blue-600 hover:text-blue-900">
+                        <Calendar className="w-5 h-5" />
+                      </button>
+                      <button
+                        onClick={() => setSelectedClient(client)}
+                        className="text-blue-600 hover:text-blue-900"
+                      >
+                        <Eye className="w-5 h-5" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {filteredClients.length === 0 && !loading && (
+        <div className="text-center py-12">
+          <div className="text-gray-500 mb-4">
+            <User className="w-12 h-12 mx-auto" />
+          </div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            {searchTerm || typeFilter !== "all"
+              ? "No matching clients found"
+              : "No clients available"}
+          </h3>
+          <p className="text-gray-600">
+            {searchTerm || typeFilter !== "all"
+              ? "Try adjusting your search or filters."
+              : "Add a new client to get started."}
+          </p>
+        </div>
+      )}
+
+      <AddClientModal
+        isOpen={isAddClientModalOpen}
+        onClose={() => setIsAddClientModalOpen(false)}
+        onInviteSuccess={() => {
+          setIsAddClientModalOpen(false);
+          loadClients(); // Refresh the clients list
+        }}
+      />
+
+      <UrlModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        url={url}
+        title="Share This Link"
+        description="Copy this URL to share with others"
+      />
+
+      <ClientDetailsModal
+        isOpen={!!selectedClient}
+        onClose={() => setSelectedClient(null)}
+        client={selectedClient}
+      />
+    </div>
+  );
+};
+
+export default Clients;
