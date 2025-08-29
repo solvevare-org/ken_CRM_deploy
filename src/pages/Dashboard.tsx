@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import StatsCards from "./StatsCards";
 import RecentActivity from "./RecentActivity";
 import PropertyChart from "./PropertyChart";
@@ -11,10 +11,40 @@ import { selectUser } from "@/store/slices/authSlice";
 const Dashboard: React.FC = () => {
   const dispatch = useAppDispatch();
   const user = useAppSelector(selectUser);
+  const [initialLoading, setInitialLoading] = useState(true);
 
   useEffect(() => {
-    dispatch(getCurrentUser());
-  }, [dispatch]);
+    let mounted = true;
+    if (user) {
+      if (mounted) setInitialLoading(false);
+      return () => {
+        mounted = false;
+      };
+    }
+
+    (dispatch(getCurrentUser()) as any)
+      .catch(() => {
+        // errors recorded in auth slice
+      })
+      .finally(() => {
+        if (mounted) setInitialLoading(false);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [dispatch, user]);
+
+  // Show a centered loader only while this page is performing its
+  // initial user fetch. Do not use the global isLoading for this
+  // UI because it can be toggled by other background auth actions.
+  if (initialLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <span className="text-lg text-gray-600">Loading...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 lg:p-6 space-y-4 lg:space-y-6">
