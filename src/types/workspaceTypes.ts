@@ -37,17 +37,27 @@ export interface SelectedWorkspaceResponse {
 }
 
 export interface WorkspaceState {
-  workspaces: Workspace[];
-  currentWorkspace: Workspace | null;
-  selectedWorkspace: SelectedWorkspaceResponse["workspace"] | null;
+  workspaces: any[];
+  currentWorkspace: any | null;
+  selectedWorkspace: any | null;
   workspaceType: string | null;
-  workspaceAvailability: WorkspaceAvailability;
+  workspaceAvailability: {
+    name: string;
+    exists: boolean;
+    available: boolean;
+    message: string;
+  };
   loading: {
     getWorkspaces: boolean;
     getWorkspaceByName: boolean;
     createWorkspace: boolean;
     checkWorkspaceExists: boolean;
     selectWorkspace: boolean;
+    inviteRealtor: boolean;
+    acceptInvite: boolean;
+    inviteByEmail: boolean;
+    promoteRealtor: boolean;
+    removeRealtor: boolean;
   };
   error: {
     getWorkspaces: string | null;
@@ -55,9 +65,55 @@ export interface WorkspaceState {
     createWorkspace: string | null;
     checkWorkspaceExists: string | null;
     selectWorkspace: string | null;
+    inviteRealtor: string | null;
+    acceptInvite: string | null;
+    inviteByEmail: string | null;
+    promoteRealtor: string | null;
+    removeRealtor: string | null;
   };
 }
 
 export interface RootState {
   workspace: WorkspaceState;
+}
+
+export interface InviteRealtorRequest {
+  realtorId: string;
+  role: "admin" | "realtor";
+}
+
+export interface InviteRealtorResponse {
+  inviteId: string;
+  token: string;
+}
+
+export interface AcceptInviteRequest {
+  token: string;
+}
+
+export interface AcceptInviteResponse {
+  workspaceId: string;
+}
+
+export interface InviteByEmailRequest {
+  email: string;
+  role: "admin" | "realtor";
+}
+
+export interface InviteByEmailResponse {
+  inviteUrl: string;
+}
+
+export interface PromoteRealtorRequest {
+  realtorId: string;
+}
+
+export interface PromoteRealtorResponse {
+  realtorId: string;
+}
+
+export interface RemoveRealtorResponse {
+  realtorId: string;
+  removedFromMembership: boolean;
+  removedFromAdmins: boolean;
 }

@@ -1,8 +1,17 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import api, { handleApiError } from "../../utils/api";
 import {
+  AcceptInviteRequest,
+  AcceptInviteResponse,
   ApiResponse,
   CreateWorkspaceData,
+  InviteByEmailRequest,
+  InviteByEmailResponse,
+  InviteRealtorRequest,
+  InviteRealtorResponse,
+  PromoteRealtorRequest,
+  PromoteRealtorResponse,
+  RemoveRealtorResponse,
   RootState,
   SelectedWorkspaceResponse,
   Workspace,
@@ -119,6 +128,97 @@ export const selectWorkspace = createAsyncThunk<
   }
 );
 
+export const inviteRealtorToWorkspace = createAsyncThunk<
+  ApiResponse<InviteRealtorResponse>,
+  InviteRealtorRequest,
+  { rejectValue: string }
+>(
+  "workspace/inviteRealtor",
+  async (data: InviteRealtorRequest, { rejectWithValue }) => {
+    try {
+      const response = await api.post<ApiResponse<InviteRealtorResponse>>(
+        `${API_BASE_URL}/invite-realtor`,
+        data
+      );
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(handleApiError(error));
+    }
+  }
+);
+
+export const acceptWorkspaceInvite = createAsyncThunk<
+  ApiResponse<AcceptInviteResponse>,
+  AcceptInviteRequest,
+  { rejectValue: string }
+>(
+  "workspace/acceptInvite",
+  async (data: AcceptInviteRequest, { rejectWithValue }) => {
+    try {
+      const response = await api.post<ApiResponse<AcceptInviteResponse>>(
+        `${API_BASE_URL}/accept-invite`,
+        data
+      );
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(handleApiError(error));
+    }
+  }
+);
+
+export const inviteByEmailToWorkspace = createAsyncThunk<
+  ApiResponse<InviteByEmailResponse>,
+  InviteByEmailRequest,
+  { rejectValue: string }
+>(
+  "workspace/inviteByEmail",
+  async (data: InviteByEmailRequest, { rejectWithValue }) => {
+    try {
+      const response = await api.post<ApiResponse<InviteByEmailResponse>>(
+        `${API_BASE_URL}/invite-email`,
+        data
+      );
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(handleApiError(error));
+    }
+  }
+);
+
+export const promoteRealtorToAdmin = createAsyncThunk<
+  ApiResponse<PromoteRealtorResponse>,
+  PromoteRealtorRequest,
+  { rejectValue: string }
+>(
+  "workspace/promoteRealtor",
+  async (data: PromoteRealtorRequest, { rejectWithValue }) => {
+    try {
+      const response = await api.post<ApiResponse<PromoteRealtorResponse>>(
+        `${API_BASE_URL}/promote-realtor`,
+        data
+      );
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(handleApiError(error));
+    }
+  }
+);
+
+export const removeRealtorFromWorkspace = createAsyncThunk<
+  ApiResponse<RemoveRealtorResponse>,
+  string,
+  { rejectValue: string }
+>("workspace/removeRealtor", async (realtorId: string, { rejectWithValue }) => {
+  try {
+    const response = await api.delete<ApiResponse<RemoveRealtorResponse>>(
+      `${API_BASE_URL}/remove-realtor/${realtorId}`
+    );
+    return response.data;
+  } catch (error) {
+    return rejectWithValue(handleApiError(error));
+  }
+});
+
 // Initial state
 const initialState: WorkspaceState = {
   workspaces: [],
@@ -137,6 +237,11 @@ const initialState: WorkspaceState = {
     createWorkspace: false,
     checkWorkspaceExists: false,
     selectWorkspace: false,
+    inviteRealtor: false,
+    acceptInvite: false,
+    inviteByEmail: false,
+    promoteRealtor: false,
+    removeRealtor: false,
   },
   error: {
     getWorkspaces: null,
@@ -144,6 +249,11 @@ const initialState: WorkspaceState = {
     createWorkspace: null,
     checkWorkspaceExists: null,
     selectWorkspace: null,
+    inviteRealtor: null,
+    acceptInvite: null,
+    inviteByEmail: null,
+    promoteRealtor: null,
+    removeRealtor: null,
   },
 };
 
@@ -297,6 +407,118 @@ const workspaceSlice = createSlice({
         state.error.selectWorkspace =
           action.payload || "Failed to select workspace";
       });
+
+    // Invite Realtor by ID
+    builder
+      .addCase(inviteRealtorToWorkspace.pending, (state: WorkspaceState) => {
+        state.loading.inviteRealtor = true;
+        state.error.inviteRealtor = null;
+      })
+      .addCase(
+        inviteRealtorToWorkspace.fulfilled,
+        (state: WorkspaceState, action: any) => {
+          state.loading.inviteRealtor = false;
+          state.error.inviteRealtor = null;
+          // Could store invite info if needed
+        }
+      )
+      .addCase(
+        inviteRealtorToWorkspace.rejected,
+        (state: WorkspaceState, action: any) => {
+          state.loading.inviteRealtor = false;
+          state.error.inviteRealtor =
+            action.payload || "Failed to invite realtor";
+        }
+      );
+
+    // Accept Invite
+    builder
+      .addCase(acceptWorkspaceInvite.pending, (state: WorkspaceState) => {
+        state.loading.acceptInvite = true;
+        state.error.acceptInvite = null;
+      })
+      .addCase(
+        acceptWorkspaceInvite.fulfilled,
+        (state: WorkspaceState, action: any) => {
+          state.loading.acceptInvite = false;
+          state.error.acceptInvite = null;
+          // Could refresh workspaces list or set current workspace
+        }
+      )
+      .addCase(
+        acceptWorkspaceInvite.rejected,
+        (state: WorkspaceState, action: any) => {
+          state.loading.acceptInvite = false;
+          state.error.acceptInvite =
+            action.payload || "Failed to accept invite";
+        }
+      );
+
+    // Invite by Email
+    builder
+      .addCase(inviteByEmailToWorkspace.pending, (state: WorkspaceState) => {
+        state.loading.inviteByEmail = true;
+        state.error.inviteByEmail = null;
+      })
+      .addCase(
+        inviteByEmailToWorkspace.fulfilled,
+        (state: WorkspaceState, action: any) => {
+          state.loading.inviteByEmail = false;
+          state.error.inviteByEmail = null;
+        }
+      )
+      .addCase(
+        inviteByEmailToWorkspace.rejected,
+        (state: WorkspaceState, action: any) => {
+          state.loading.inviteByEmail = false;
+          state.error.inviteByEmail =
+            action.payload || "Failed to send email invite";
+        }
+      );
+
+    // Promote Realtor
+    builder
+      .addCase(promoteRealtorToAdmin.pending, (state: WorkspaceState) => {
+        state.loading.promoteRealtor = true;
+        state.error.promoteRealtor = null;
+      })
+      .addCase(
+        promoteRealtorToAdmin.fulfilled,
+        (state: WorkspaceState, action: any) => {
+          state.loading.promoteRealtor = false;
+          state.error.promoteRealtor = null;
+        }
+      )
+      .addCase(
+        promoteRealtorToAdmin.rejected,
+        (state: WorkspaceState, action: any) => {
+          state.loading.promoteRealtor = false;
+          state.error.promoteRealtor =
+            action.payload || "Failed to promote realtor";
+        }
+      );
+
+    // Remove Realtor
+    builder
+      .addCase(removeRealtorFromWorkspace.pending, (state: WorkspaceState) => {
+        state.loading.removeRealtor = true;
+        state.error.removeRealtor = null;
+      })
+      .addCase(
+        removeRealtorFromWorkspace.fulfilled,
+        (state: WorkspaceState, action: any) => {
+          state.loading.removeRealtor = false;
+          state.error.removeRealtor = null;
+        }
+      )
+      .addCase(
+        removeRealtorFromWorkspace.rejected,
+        (state: WorkspaceState, action: any) => {
+          state.loading.removeRealtor = false;
+          state.error.removeRealtor =
+            action.payload || "Failed to remove realtor";
+        }
+      );
   },
 });
 
