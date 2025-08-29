@@ -11,15 +11,11 @@ const StatsCards: React.FC = () => {
   const { leadCount, clientCount, propertyCount } = useAppSelector(
     selectDashboardCounts
   );
-  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     // Fetch dashboard counts on mount if not yet loaded
     if (leadCount === 0 && clientCount === 0 && propertyCount === 0) {
-      setIsLoading(true);
-      dispatch(dashboardCounts()).finally(() => {
-        setIsLoading(false);
-      });
+      dispatch(dashboardCounts());
     }
   }, [dispatch, leadCount, clientCount, propertyCount]);
 
