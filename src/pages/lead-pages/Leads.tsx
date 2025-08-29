@@ -11,10 +11,16 @@ import {
   TrendingUp,
   Star,
   Loader2,
+  Link2,
 } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { GenerateFormLinkRequest } from "@/types/leadFormLinkTypes";
 import { generateFormLink } from "@/store/slices/leadFormLinkSlice";
+import {
+  getDefaultTemplate,
+  selectDefaultTemplate,
+  selectFormTemplateLoading,
+} from "@/store/slices/formTemplateSlice";
 import {
   fetchRealtorLeads,
   selectLeads,
@@ -29,14 +35,12 @@ const Leads: React.FC = () => {
   const [sourceFilter, setSourceFilter] = useState("all");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [url, setUrl] = useState("");
-  const [linkData] = useState<GenerateFormLinkRequest>({
-    formId: "689a3c955abd6e0c5659f594",
-    tag: "Twitter",
-  });
 
   const dispatch = useAppDispatch();
   const leads = useAppSelector(selectLeads);
   const leadsLoading = useAppSelector(selectLeadsLoading);
+  const defaultTemplate = useAppSelector(selectDefaultTemplate);
+  const templateLoading = useAppSelector(selectFormTemplateLoading);
   const loadCount = leads?.length;
   const leadsNewThisWeek = leads?.filter((lead) => {
     const submittedDate = new Date(lead.createdAt);
@@ -49,7 +53,12 @@ const Leads: React.FC = () => {
     if (!leads || leads.length === 0) {
       dispatch(fetchRealtorLeads());
     }
-  }, [leads, dispatch]);
+    
+    // Fetch default template if not loaded
+    if (!defaultTemplate && !templateLoading) {
+      dispatch(getDefaultTemplate());
+    }
+  }, [leads, defaultTemplate, templateLoading, dispatch]);
 
   const filteredLeads = leads.filter((lead) => {
     const searchString = Object.values(lead.submittedData || {})
@@ -67,10 +76,39 @@ const Leads: React.FC = () => {
   });
 
   const generateLeadFormLink = async () => {
-    const res = await dispatch(generateFormLink(linkData)).unwrap();
-    console.log(res, "res");
-    setUrl(res.shareableUrl);
-    setIsModalOpen(true);
+    if (!defaultTemplate) {
+      console.error("No default template available");
+      // Try to fetch template first
+      const result = await dispatch(getDefaultTemplate());
+      if (result.type.endsWith('/rejected')) {
+        console.error("Failed to fetch default template");
+        return;
+      }
+      // Use the fetched template
+      const template = result.payload as any;
+      const linkData = {
+        formId: template._id,
+        tag: "Website",
+      };
+      const res = await dispatch(generateFormLink(linkData)).unwrap();
+      setUrl(res.shareableUrl);
+      setIsModalOpen(true);
+      return;
+    }
+
+    const linkData = {
+      formId: defaultTemplate._id,
+      tag: "Website",
+    };
+    
+    try {
+      const res = await dispatch(generateFormLink(linkData)).unwrap();
+      console.log(res, "res");
+      setUrl(res.shareableUrl);
+      setIsModalOpen(true);
+    } catch (error) {
+      console.error("Failed to generate form link:", error);
+    }
   };
 
   return (
@@ -86,9 +124,14 @@ const Leads: React.FC = () => {
         <button
           onClick={generateLeadFormLink}
           className="mt-4 sm:mt-0 inline-flex items-center px-3 lg:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm lg:text-base"
+          disabled={templateLoading}
         >
-          <Plus className="w-4 h-4 mr-2" />
-          Add Lead
+          {templateLoading ? (
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+          ) : (
+            <Link2 className="w-4 h-4 mr-2" />
+          )}
+          Generate Lead Form Link
         </button>
       </div>
 

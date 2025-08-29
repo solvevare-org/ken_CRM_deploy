@@ -5,6 +5,7 @@ import { persistStore, persistReducer } from "redux-persist";
 // Slices
 import signupReducer from "./slices/signupSlice";
 import leadFormLinkReducer from "./slices/leadFormLinkSlice";
+import formTemplateReducer from "./slices/formTemplateSlice";
 import realtorReducer from "./slices/realtorSlice";
 import authReducer from "./slices/authSlice"; // Adjust path as needed
 import otherAuthReducer from "./slices/otherAuthSlice";
@@ -36,6 +37,7 @@ const store = configureStore({
   reducer: {
     signup: signupReducer,
     leadFormLink: leadFormLinkReducer,
+    formTemplate: formTemplateReducer,
     auth: persistedAuthReducer,
     otherAuth: otherAuthReducer,
     realtor: persistedRealtorReducer,
