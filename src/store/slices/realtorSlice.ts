@@ -156,6 +156,7 @@ const initialState: RealtorState = {
   leadCount: 0,
   clientCount: 0,
   propertyCount: 0,
+  countsLastUpdated: null,
 };
 
 // Slice
@@ -200,6 +201,11 @@ const realtorSlice = createSlice({
 
     // Reset all state
     resetRealtorState: () => initialState,
+    // Increment counters locally when entities are created so the UI updates
+    // immediately without refetching all counts.
+    incrementPropertyCount: (state) => {
+      state.propertyCount = (state.propertyCount || 0) + 1;
+    },
   },
   extraReducers: (builder) => {
     // Fetch Realtors
@@ -378,6 +384,8 @@ const realtorSlice = createSlice({
               payload.propertyCount) ||
             (typeof payload.properties === "number" && payload.properties) ||
             0;
+          // mark when counts were last refreshed from the server
+          state.countsLastUpdated = Date.now();
         }
       )
       .addCase(dashboardCounts.rejected, (state) => {
@@ -415,6 +423,7 @@ export const {
   clearTaggedLeads,
   clearClientLink,
   resetRealtorState,
+  incrementPropertyCount,
 } = realtorSlice.actions;
 
 // Export reducer

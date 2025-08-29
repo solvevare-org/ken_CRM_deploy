@@ -66,4 +66,6 @@ export interface RealtorState {
   leadCount: number;
   clientCount: number;
   propertyCount: number;
+  // Timestamp (ms) when counts were last refreshed from the server
+  countsLastUpdated?: number | null;
 }

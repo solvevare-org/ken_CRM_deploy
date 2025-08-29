@@ -22,7 +22,13 @@ const authPersistConfig = {
 const realtorPersistConfig = {
   key: "realtor",
   storage,
-  whitelist: ["leadCount", "clientCount", "propertyCount", "clients"], // Only persist the dashboard counts fields
+  whitelist: [
+    "clients",
+    "leadCount",
+    "clientCount",
+    "propertyCount",
+    "countsLastUpdated",
+  ],
 };
 
 // Create persisted reducer
