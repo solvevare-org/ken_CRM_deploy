@@ -28,9 +28,12 @@ export function LoginPage() {
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/(^-|-$)/g, "");
     const protocol = window.location.protocol;
-    const host = `${slug}.${CRM_BASE_DOMAIN}`;
-    const port = window.location.port ? `:${window.location.port}` : "";
-    const targetUrl = `${protocol}//${host}${port}/client`;
+    const baseDomain = String(CRM_BASE_DOMAIN);
+    const includePort =
+      baseDomain === "lvh.me" || baseDomain.includes("localhost");
+    const port = includePort ? window.location.port || "5173" : "";
+    const host = `${slug}.${CRM_BASE_DOMAIN}${port ? `:${port}` : ""}`;
+    const targetUrl = `${protocol}//${host}/client`;
     window.location.assign(targetUrl);
   };
 

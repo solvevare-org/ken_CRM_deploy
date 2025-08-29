@@ -24,6 +24,7 @@ import {
   selectWorkspace,
 } from "@/store/slices/workspaceSlice";
 import { logout, selectUser } from "@/store/slices/authSlice";
+import { toast } from "react-toastify";
 
 export function WorkspacePage() {
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -85,12 +86,13 @@ export function WorkspacePage() {
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/(^-|-$)/g, "");
-
     const protocol = window.location.protocol;
-    // CRM_BASE_DOMAIN now contains only the host (e.g. lvh.me). Append current port if present.
-    const host = `${slug}.${CRM_BASE_DOMAIN}`;
-    const port = window.location.port ? `:${window.location.port}` : "";
-    const targetUrl = `${protocol}//${host}${port}/realtor`;
+    const baseDomain = String(CRM_BASE_DOMAIN);
+    const includePort =
+      baseDomain === "lvh.me" || baseDomain.includes("localhost");
+    const port = includePort ? window.location.port || "5173" : "";
+    const host = `${slug}.${CRM_BASE_DOMAIN}${port ? `:${port}` : ""}`;
+    const targetUrl = `${protocol}//${host}/realtor`;
 
     try {
       // Ask backend to select workspace (backend may set cookie/session for subdomain)
@@ -99,10 +101,12 @@ export function WorkspacePage() {
 
       // On success, navigate to the workspace subdomain which will perform a full reload
       window.location.assign(targetUrl);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to select workspace before redirect:", err);
       // Fallback: still redirect (user may rely on cookie-less auth) or show error
-      window.location.assign(targetUrl);
+      toast.error(
+        err.message || "Failed to switch workspace. Please try again."
+      );
     }
   };
 

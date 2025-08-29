@@ -337,6 +337,24 @@ export function WorkspaceDetailsPage() {
     }
   };
 
+  const handleOpenWorkspace = () => {
+    // Open workspace in same window with token transfer
+    const slug = (createdWorkspace?.name || workspaceName)
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, "");
+
+    const protocol = window.location.protocol;
+    const baseDomain = String(CRM_BASE_DOMAIN);
+    const includePort =
+      baseDomain === "lvh.me" || baseDomain.includes("localhost");
+    const port = includePort ? window.location.port || "5173" : "";
+    const host = `${slug}.${CRM_BASE_DOMAIN}${port ? `:${port}` : ""}`;
+    const targetUrl = `${protocol}//${host}/realtor`;
+    window.location.assign(targetUrl);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="max-w-2xl w-full">
@@ -715,29 +733,7 @@ export function WorkspaceDetailsPage() {
                 <div className="space-y-3">
                   <Button
                     className="w-full"
-                    onClick={() => {
-                      // Open workspace in same window with token transfer
-                      const slug = (createdWorkspace?.name || workspaceName)
-                        .trim()
-                        .toLowerCase()
-                        .replace(/[^a-z0-9]+/g, "-")
-                        .replace(/(^-|-$)/g, "");
-
-                      const token = localStorage.getItem("token");
-                      const protocol = window.location.protocol;
-                      const host = `${slug}.${CRM_BASE_DOMAIN}`;
-                      const port = window.location.port
-                        ? `:${window.location.port}`
-                        : "";
-
-                      // Create workspace URL with token as query parameter for auto-login
-                      const workspaceUrl = `${protocol}//${host}${port}/?token=${encodeURIComponent(
-                        token || ""
-                      )}&redirect=dashboard`;
-
-                      // Navigate to workspace subdomain
-                      window.location.href = workspaceUrl;
-                    }}
+                    onClick={() => handleOpenWorkspace()}
                   >
                     Open Workspace
                   </Button>
@@ -765,7 +761,7 @@ export function WorkspaceDetailsPage() {
           {/* Back Button */}
           <div className="text-center mt-6">
             <button
-              onClick={() => navigate("/checkout")}
+              onClick={() => navigate("/workspace")}
               className="text-gray-500 hover:text-gray-700 font-medium transition-colors"
             >
               ← Back
