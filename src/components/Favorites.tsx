@@ -112,7 +112,7 @@ const Favorites: React.FC<FavoritesProps> = ({ onToggleFavorite }) => {
             {bookmarks.map((bookmark) => {
               const property = bookmark.property;
               return (
-              <div key={property._id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow">
+                <div key={property._id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow">
                 {/* Property Image */}
                 <div className="relative">
                   <img
@@ -201,8 +201,9 @@ const Favorites: React.FC<FavoritesProps> = ({ onToggleFavorite }) => {
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
+                </div>
+              );
+            })}
           </div>
         </>
       )}
