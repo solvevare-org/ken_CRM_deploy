@@ -71,6 +71,7 @@ import Realtors from "@/pages/Realtors";
 import SMSBuilder from "@/pages/SMSBuilder";
 import EmailBuilder from "@/pages/EmailBuilder";
 import ContractBuilder from "@/pages/ContractBuilder";
+import ContractDragDropBuilder from "@/pages/ContractBuilder/ContractDragDropBuilder";
 
 const WorkspaceListPage = () => <div>All Workspaces Page</div>;
 
@@ -258,6 +259,7 @@ function App() {
 
         try {
           // Try to fetch current user using cookie-based session (backend sets httpOnly cookie)
+          // This will work across subdomains because cookies are set with domain .lvh.me
           const resultAction: any = await dispatch(fetchCurrentUser() as any);
           if (resultAction?.payload?.data?.auth) {
             // populate main auth slice so UI sees user
@@ -265,6 +267,7 @@ function App() {
           }
         } catch (err) {
           // no-op, not authenticated
+          console.log('Failed to fetch current user:', err);
         } finally {
           if (mounted) setChecking(false);
         }
@@ -577,6 +580,14 @@ function App() {
                 <Route
                   path="/realtor/contract-builder"
                   element={<RealtorPortal initialSection="contract-builder" />}
+                />
+                <Route
+                  path="/realtor/contract-drag-builder"
+                  element={<ContractDragDropBuilder />}
+                />
+                <Route
+                  path="/realtor/contract-drag-builder/:templateId"
+                  element={<ContractDragDropBuilder />}
                 />
                 <Route
                   path="/realtor/followup-templating"

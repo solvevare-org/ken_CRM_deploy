@@ -8,10 +8,8 @@ export const setAuthTokenGetter = (getter: () => string | undefined): void => {
   authTokenGetter = getter;
 };
 
-// Configure axios defaults
-// Use the page's hostname so API requests target the same domain (lvh.me / subdomains)
-// — this ensures cookies set for ".lvh.me" are sent with XHRs from subdomains like
-// hzuaifa-personal-4.lvh.me. Fall back to crm.vire-s.com when window is not available.
+// Configure axios defaults  
+// Use current domain with port 3000 for API calls to ensure same-origin requests
 export const getApiBaseUrl = (): string => {
   try {
     if (
@@ -19,10 +17,9 @@ export const getApiBaseUrl = (): string => {
       window.location &&
       window.location.hostname
     ) {
-      const host = window.location.hostname; // e.g. hzuaifa-personal-4.lvh.me or crm.vire-s.com
-      // Backend default port in dev
-      const apiPort = BASE_URL_PORT;
-      return `http://${host}:${apiPort}`;
+      const host = window.location.hostname; // e.g. huzaifa-oranization-two.lvh.me or localhost
+      // Backend port is always 3000
+      return `http://${host}:3000`;
     }
   } catch (e) {
     // ignore and fall back
@@ -31,7 +28,7 @@ export const getApiBaseUrl = (): string => {
 };
 
 const api = axios.create({
-  baseURL: BASE_URL,
+  baseURL: getApiBaseUrl(), // Use same domain with port 3000 for same-origin requests
   withCredentials: true, // For HTTP-only cookies
 });
 
@@ -51,13 +48,21 @@ api.interceptors.request.use(
       return config;
     }
 
-    // Get token from Redux state
+    // Get token from Redux state (for same-domain requests)
+    // For cross-subdomain requests, rely on HTTP-only cookies set by backend
     const token = authTokenGetter ? authTokenGetter() : undefined;
 
+    // Always try to add Authorization header if we have a token
     if (token) {
       config.headers = config.headers || {};
       config.headers.Authorization = `Bearer ${token}`;
+      console.log("Adding Authorization header:", `Bearer ${token.substring(0, 20)}...`);
+    } else {
+      console.log("No token available for Authorization header");
     }
+
+    // Always include credentials for cookie-based auth
+    config.withCredentials = true;
 
     return config;
   },

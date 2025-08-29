@@ -43,7 +43,12 @@ export const login = createAsyncThunk<
       ApiResponse<{ token: string; user_type: string; user: User }>
     >(`${BASE_URL}/login`, loginData);
     toast.success(response.data.message || "Login successful");
-    console.log("login response", response);
+    console.log("=== LOGIN DEBUG ===");
+    console.log("Full login response:", response);
+    console.log("Response data:", response.data);
+    console.log("Response data.data:", response.data.data);
+    console.log("Token from response:", response.data.data?.token);
+    console.log("==================");
     return response.data;
   } catch (error) {
     console.log("login error", error);
@@ -116,6 +121,20 @@ export const logout = createAsyncThunk<void, void, { rejectValue: string }>(
   }
 );
 
+// Initialize auth from localStorage
+export const initializeAuth = createAsyncThunk<
+  { token: string | null },
+  void,
+  { rejectValue: string }
+>("auth/initializeAuth", async (_, { rejectWithValue }) => {
+  try {
+    const token = localStorage.getItem('authToken');
+    return { token };
+  } catch (error) {
+    return rejectWithValue("Failed to initialize auth");
+  }
+});
+
 // Get current user (requires auth)
 export const getCurrentUser = createAsyncThunk<
   ApiResponse<{ auth: any }>,
@@ -179,6 +198,8 @@ const authSlice = createSlice({
     setToken: (state, action: PayloadAction<string>) => {
       state.token = action.payload;
       state.isAuthenticated = true;
+      
+      // For subdomain-based apps, rely on HTTP-only cookies instead of localStorage
     },
 
     // Reset auth state
@@ -259,12 +280,30 @@ const authSlice = createSlice({
       })
       .addCase(login.fulfilled, (state, action) => {
         state.isLoading = false;
+        console.log("=== LOGIN FULFILLED DEBUG ===");
+        console.log("Action payload:", action.payload);
+        console.log("Action payload data:", action.payload?.data);
+        console.log("Token being set:", action.payload.data?.token);
+        console.log("Type check:", action.payload?.data?.type);
+        console.log("============================");
+        
         if (action.payload?.data?.type !== "Unverified Login") {
           state.isAuthenticated = true;
           state.token = action.payload.data?.token || null;
           state.user_type = action.payload.data?.user_type || null;
           state.user = action.payload.data?.user || null;
           state.error = null;
+          
+          console.log("Auth state after login:", {
+            isAuthenticated: state.isAuthenticated,
+            token: state.token?.substring(0, 20) + "...",
+            user_type: state.user_type
+          });
+          
+          // For subdomain-based apps, rely on HTTP-only cookies instead of localStorage
+          // The backend will set the cookie with the correct domain (.lvh.me)
+        } else {
+          console.log("Unverified login detected, not setting token");
         }
       })
       .addCase(login.rejected, (state, action) => {
@@ -288,7 +327,8 @@ const authSlice = createSlice({
         state.user_type = null;
         state.user = null;
         state.error = null;
-        // Token/cookie is managed by backend; frontend shouldn't remove cookies.
+        
+        // HTTP-only cookies are cleared by backend
       })
       .addCase(logout.rejected, (state, action) => {
         state.isLoading = false;
@@ -314,6 +354,15 @@ const authSlice = createSlice({
         state.isLoading = false;
         state.user = null;
         state.error = action.payload || "Get current user failed";
+      });
+
+    // Initialize auth from localStorage
+    builder
+      .addCase(initializeAuth.fulfilled, (state, action) => {
+        if (action.payload.token) {
+          state.token = action.payload.token;
+          state.isAuthenticated = true;
+        }
       });
   },
 });

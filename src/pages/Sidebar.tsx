@@ -19,6 +19,9 @@ import {
   MessageCircle,
   UserCheck,
   LogOut,
+  Mail,
+  FileSignature,
+  Wrench,
 } from "lucide-react";
 import { useAppContext } from "../context/AppContext";
 import { useAppSelector } from "@/store/hooks";
@@ -71,6 +74,16 @@ const menuItems = [
         label: "Lead Form Templating",
         icon: Settings,
       },
+    ],
+  },
+  {
+    id: "builders",
+    label: "Builders",
+    icon: Wrench,
+    children: [
+      { id: "contract-builder", label: "Contract Builder", icon: FileSignature },
+      { id: "email-builder", label: "Email Builder", icon: Mail },
+      { id: "sms-builder", label: "SMS Builder", icon: MessageSquare },
     ],
   },
 ];

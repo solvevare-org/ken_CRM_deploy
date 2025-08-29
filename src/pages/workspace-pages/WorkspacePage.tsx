@@ -80,11 +80,16 @@ export function WorkspacePage() {
 
   // Navigate to workspace subdomain
   const handleWorkspaceClick = async (workspace: any) => {
+    console.log("🔍 Workspace click handler called with:", workspace);
+    console.log("🔍 CRM_BASE_DOMAIN:", CRM_BASE_DOMAIN);
+    
     // Normalize workspace slug
     const slug = workspace.name
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/(^-|-$)/g, "");
+
+    console.log("🔍 Generated slug:", slug);
 
     const protocol = window.location.protocol;
     // CRM_BASE_DOMAIN now contains only the host (e.g. lvh.me). Append current port if present.
@@ -92,16 +97,21 @@ export function WorkspacePage() {
     const port = window.location.port ? `:${window.location.port}` : "";
     const targetUrl = `${protocol}//${host}${port}/realtor`;
 
+    console.log("🔍 Target URL:", targetUrl);
+
     try {
       // Ask backend to select workspace (backend may set cookie/session for subdomain)
+      console.log("🔍 Dispatching selectWorkspace with ID:", workspace._id);
       const res = await dispatch(selectWorkspace(workspace._id)).unwrap();
-      console.log("selectWorkspace response", res);
+      console.log("🔍 selectWorkspace response:", res);
 
       // On success, navigate to the workspace subdomain which will perform a full reload
+      console.log("🔍 Attempting to navigate to:", targetUrl);
       window.location.assign(targetUrl);
     } catch (err) {
-      console.error("Failed to select workspace before redirect:", err);
+      console.error("❌ Failed to select workspace before redirect:", err);
       // Fallback: still redirect (user may rely on cookie-less auth) or show error
+      console.log("🔍 Fallback: still attempting to navigate to:", targetUrl);
       window.location.assign(targetUrl);
     }
   };

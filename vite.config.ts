@@ -23,7 +23,7 @@ export default defineConfig({
     //   cert: fs.readFileSync('./cert/cert.pem'),
     // },
     strictPort: true,
-    // Allow HMR to work when accessed via custom hosts like workspace1.crm.vire-s.com
+    // Allow HMR to work when accessed via custom hosts like workspace1.localhost:3000
     hmr: {
       clientPort: 5173,
     },

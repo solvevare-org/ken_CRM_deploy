@@ -290,7 +290,9 @@ const workspaceSlice = createSlice({
         };
         state.currentWorkspace = currentWorkspace;
         state.error.selectWorkspace = null;
-        // Note: The new token is automatically set in HTTP-only cookie by the backend
+        
+        // The new token is automatically set in HTTP-only cookie by the backend
+        // No need to store in localStorage as cookies work across subdomains
       })
       .addCase(selectWorkspace.rejected, (state, action) => {
         state.loading.selectWorkspace = false;

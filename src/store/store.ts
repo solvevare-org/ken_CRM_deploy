@@ -9,14 +9,16 @@ import realtorReducer from "./slices/realtorSlice";
 import authReducer from "./slices/authSlice"; // Adjust path as needed
 import otherAuthReducer from "./slices/otherAuthSlice";
 import workspaceReducer from "./slices/workspaceSlice";
+import contractTemplatesReducer from "./slices/contractTemplatesSlice";
+import contractInstancesReducer from "./slices/contractInstancesSlice";
 import { setAuthTokenGetter } from "@/utils/api";
 
 // Persist configuration for auth slice
 const authPersistConfig = {
   key: "auth",
   storage,
-  // Persist user and flags but not the token (token is stored as httpOnly cookie by backend)
-  whitelist: ["user", "isAuthenticated", "user_type"],
+  // Persist token, user and flags for proper authentication across refreshes
+  whitelist: ["token", "user", "isAuthenticated", "user_type"],
 };
 
 const realtorPersistConfig = {
@@ -46,6 +48,8 @@ const store = configureStore({
     otherAuth: otherAuthReducer,
     realtor: persistedRealtorReducer,
     workspace: workspaceReducer,
+    contractTemplates: contractTemplatesReducer,
+    contractInstances: contractInstancesReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plus, Calendar, Users, FileText } from 'lucide-react';
+import { Plus, Calendar, Users, FileText, FileSignature } from 'lucide-react';
 
 const QuickActions: React.FC = () => {
   const actions = [
@@ -23,6 +23,16 @@ const QuickActions: React.FC = () => {
       icon: Users,
       color: 'bg-purple-600 hover:bg-purple-700',
       onClick: () => console.log('Add client clicked')
+    },
+    {
+      title: 'Contract Builder',
+      description: 'Create contracts',
+      icon: FileSignature,
+      color: 'bg-indigo-600 hover:bg-indigo-700',
+      onClick: () => {
+        // Navigate to contract builder
+        window.location.href = '/realtor/contract-builder';
+      }
     },
     {
       title: 'Generate Report',
