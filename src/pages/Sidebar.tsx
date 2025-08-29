@@ -25,7 +25,6 @@ import { useAppSelector } from "@/store/hooks";
 import { selectUser } from "@/store/slices/authSlice";
 import { useAppDispatch } from "@/store/hooks";
 import { logout } from "@/store/slices/authSlice";
-import { useNavigate } from "react-router-dom";
 import { CRM_BASE_DOMAIN } from "@/config";
 
 interface SidebarProps {
