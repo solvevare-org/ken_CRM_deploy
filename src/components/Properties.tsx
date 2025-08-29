@@ -1,13 +1,25 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Search, Filter, MapPin, Bed, Bath, Square, Heart, Phone, Mail, ChevronRight, X } from 'lucide-react';
 import { ClientPropertyAPI, ClientPropertyApiResponse } from '../types';
-import { BASE_URL } from '../config';
+import api from '../utils/api';
+import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { 
+  fetchBookmarks, 
+  addBookmark, 
+  removeBookmark,
+  selectBookmarkedProperties,
+  selectBookmarkLoading
+} from '../store/slices/bookmarkSlice';
 
 interface PropertiesProps {
   onToggleFavorite: (propertyId: string) => void;
 }
 
 const Properties: React.FC<PropertiesProps> = ({ onToggleFavorite }) => {
+  const dispatch = useAppDispatch();
+  const bookmarkedProperties = useAppSelector(selectBookmarkedProperties);
+  const bookmarkLoading = useAppSelector(selectBookmarkLoading);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedType, setSelectedType] = useState('all');
   const [maxPrice, setMaxPrice] = useState(15000000);
@@ -21,49 +33,23 @@ const Properties: React.FC<PropertiesProps> = ({ onToggleFavorite }) => {
   });
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedProperty, setSelectedProperty] = useState<ClientPropertyAPI | null>(null);
-  const [activeTab, setActiveTab] = useState('overview');
 
-  // Fetch properties from API with proper authentication
+  // Fetch properties from API with proper authentication using axios
   const fetchProperties = async (cursor?: string) => {
     try {
       setLoading(true);
       setError(null);
       
-      let url = `${BASE_URL}/api/property/cursor`;
+      let url = `/api/property/cursor`;
       if (cursor) {
         url += `?cursor=${encodeURIComponent(cursor)}`;
       }
 
       console.log('Fetching properties from:', url);
-      console.log('Current hostname:', window.location.hostname);
       
-      const response = await fetch(url, {
-        method: 'GET',
-        credentials: 'include', // Include cookies
-        headers: {
-          'Content-Type': 'application/json',
-          'Host': window.location.hostname, // Include host header
-        },
-      });
-
-      console.log('Response status:', response.status);
+      const response = await api.get(url);
+      const data: ClientPropertyApiResponse = response.data;
       
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.log('Error response:', errorText);
-        
-        if (response.status === 500) {
-          throw new Error('Server error: The properties service is currently unavailable. Please try again later.');
-        } else if (response.status === 401) {
-          throw new Error('Authentication error: Please log in again to view properties.');
-        } else if (response.status === 403) {
-          throw new Error('Access denied: You do not have permission to view properties.');
-        } else {
-          throw new Error(`HTTP ${response.status}: ${errorText}`);
-        }
-      }
-
-      const data: ClientPropertyApiResponse = await response.json();
       console.log('API result:', data);
       
       if (data.success && data.data.items) {
@@ -95,12 +81,33 @@ const Properties: React.FC<PropertiesProps> = ({ onToggleFavorite }) => {
   // Initial fetch
   useEffect(() => {
     fetchProperties();
-  }, []);
+    dispatch(fetchBookmarks());
+  }, [dispatch]);
 
   // Load more properties (pagination)
   const loadMoreProperties = () => {
     if (pagination.hasNextPage && pagination.endCursor) {
       fetchProperties(pagination.endCursor);
+    }
+  };
+
+  // Toggle bookmark for a property
+  const toggleBookmark = async (propertyId: string) => {
+    if (bookmarkLoading.has(propertyId)) return;
+
+    const isBookmarked = bookmarkedProperties.has(propertyId);
+    
+    try {
+      if (isBookmarked) {
+        await dispatch(removeBookmark(propertyId)).unwrap();
+      } else {
+        await dispatch(addBookmark(propertyId)).unwrap();
+      }
+      
+      // Call the parent onToggleFavorite for UI consistency
+      onToggleFavorite(propertyId);
+    } catch (error) {
+      console.error('Error toggling bookmark:', error);
     }
   };
 
@@ -262,10 +269,19 @@ const Properties: React.FC<PropertiesProps> = ({ onToggleFavorite }) => {
                 className="w-full h-48 object-cover"
               />
               <button
-                onClick={() => onToggleFavorite(property._id)}
-                className="absolute top-3 right-3 p-2 rounded-full bg-white text-gray-400 hover:text-red-500 transition-colors"
+                onClick={() => toggleBookmark(property._id)}
+                className={`absolute top-3 right-3 p-2 rounded-full transition-colors ${
+                  bookmarkedProperties.has(property._id)
+                    ? 'bg-red-500 text-white hover:bg-red-600'
+                    : 'bg-white text-gray-400 hover:text-red-500'
+                }`}
+                disabled={bookmarkLoading.has(property._id)}
               >
-                <Heart className="h-4 w-4" />
+                {bookmarkLoading.has(property._id) ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-500"></div>
+                ) : (
+                  <Heart className={`h-4 w-4 ${bookmarkedProperties.has(property._id) ? 'fill-current' : ''}`} />
+                )}
               </button>
               <div className={`absolute top-3 left-3 px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(property.status)}`}>
                 {property.status}

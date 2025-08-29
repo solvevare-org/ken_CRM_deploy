@@ -189,6 +189,26 @@ export interface ClientPropertyApiResponse {
   success: boolean;
 }
 
+export interface BookmarkResponse {
+  statusCode: number;
+  message: string;
+  data: {
+    bookmarks: Array<{
+      bookmark_id: string;
+      bookmarked_at: string;
+      notes: string;
+      age_in_days: number;
+      property: ClientPropertyAPI;
+    }>;
+    pagination: {
+      limit: number;
+      skip: number;
+      count: number;
+    };
+  };
+  success: boolean;
+}
+
 export interface ChatMessage {
   id: string;
   content: string;
