@@ -15,7 +15,7 @@ export interface FormLink {
 }
 
 export interface GenerateFormLinkRequest {
-  formId: string;
+  formId?: string;
   tag?: string;
 }
 

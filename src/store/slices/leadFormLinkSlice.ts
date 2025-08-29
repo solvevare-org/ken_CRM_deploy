@@ -12,7 +12,7 @@ const API_BASE_URL = "/api/lead-form"; // or your API base URL
 // Async Thunks
 export const generateFormLink = createAsyncThunk(
   "formLinks/generate",
-  async (data: GenerateFormLinkRequest, { rejectWithValue }) => {
+  async (data: GenerateFormLinkRequest = {}, { rejectWithValue }) => {
     try {
       const response = await api.post(`${API_BASE_URL}/links`, data);
       console.log("link generate", response);

@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import { generateFormLink, selectFormLinks, selectIsGeneratingLink, selectFormLinksError } from '../../store/slices/leadFormLinkSlice';
 import { Plus, Trash2, Eye, Link2, QrCode } from 'lucide-react';
 
 const fieldTypes = [
@@ -34,9 +36,14 @@ const LeadForm: React.FC = () => {
   const [fields, setFields] = useState<LeadField[]>([...defaultTemplate]);
   const [showPreview, setShowPreview] = useState(false);
   const [formName, setFormName] = useState('New Lead Form');
-  const [shareLink, setShareLink] = useState('');
-  const [qrCodeUrl, setQrCodeUrl] = useState('');
   const [startType, setStartType] = useState<'scratch' | 'template'>('template');
+
+  // Redux integration for form link generation
+  const dispatch = useAppDispatch();
+  const isGenerating = useAppSelector(selectIsGeneratingLink);
+  const error = useAppSelector(selectFormLinksError);
+  const links = useAppSelector(selectFormLinks);
+  const generatedLink = links.length > 0 ? links[0].shareableUrl || '' : '';
 
   // Add field
   const addField = (type: string) => {
@@ -70,11 +77,19 @@ const LeadForm: React.FC = () => {
     setFields(updated);
   };
 
-  // Save form
+  // Save form (local only)
   const saveForm = () => {
-    setShareLink('https://realtypro.com/leadform/' + generateId());
-    setQrCodeUrl('https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=' + encodeURIComponent(shareLink));
-    alert('Form saved!');
+    alert('Form saved locally!');
+  };
+
+  // Generate Lead Form Link (Redux) - Uses default template automatically
+  const handleGenerateFormLink = async () => {
+    try {
+      await dispatch(generateFormLink({ tag: formName || "Lead Form" })).unwrap();
+      // Success handled by Redux state
+    } catch (err) {
+      // Error handled by Redux state
+    }
   };
 
   // Start from scratch or template
@@ -125,23 +140,31 @@ const LeadForm: React.FC = () => {
             <button key={ft.type} className="bg-blue-100 text-blue-700 px-3 py-2 rounded-lg font-semibold flex items-center gap-1" onClick={() => addField(ft.type)}><Plus size={16} /> {ft.label}</button>
           ))}
         </div>
-        {/* Preview & Save */}
+        {/* Preview, Save, and Generate Link */}
         <div className="flex gap-4 mb-6 justify-center">
           <button className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold flex items-center gap-2" onClick={() => setShowPreview(true)}><Eye size={18} /> Preview</button>
           <button className="bg-green-600 text-white px-4 py-2 rounded-lg font-semibold" onClick={saveForm}>Save Form</button>
+          <button
+            onClick={handleGenerateFormLink}
+            disabled={isGenerating}
+            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded flex items-center gap-2"
+          >
+            {isGenerating ? 'Generating...' : 'Generate Lead Form Link'}
+          </button>
         </div>
-        {/* Share options */}
-        {shareLink && (
+        {/* Error state */}
+        {error && (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded mb-4 text-center">
+            {error}
+          </div>
+        )}
+        {/* Show generated link if available */}
+        {generatedLink && (
           <div className="bg-white rounded-xl shadow p-4 border-l-4 border-green-400 mb-6 flex flex-col items-center">
             <div className="flex gap-2 items-center mb-2">
               <Link2 size={20} className="text-green-600" />
               <span className="font-semibold">Shareable Link:</span>
-              <a href={shareLink} className="text-blue-600 underline" target="_blank" rel="noopener noreferrer">{shareLink}</a>
-            </div>
-            <div className="flex gap-2 items-center">
-              <QrCode size={20} className="text-green-600" />
-              <span className="font-semibold">QR Code:</span>
-              {qrCodeUrl && <img src={qrCodeUrl} alt="QR Code" className="ml-2" />}
+              <a href={generatedLink} className="text-blue-600 underline" target="_blank" rel="noopener noreferrer">{generatedLink}</a>
             </div>
           </div>
         )}
