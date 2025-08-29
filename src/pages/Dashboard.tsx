@@ -7,14 +7,12 @@ import TopProperties from "./TopProperties";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { getCurrentUser } from "@/store/slices/authSlice";
 import { selectUser } from "@/store/slices/authSlice";
-import { getApiBaseUrl } from "@/utils/api";
 
 const Dashboard: React.FC = () => {
   const dispatch = useAppDispatch();
   const user = useAppSelector(selectUser);
 
   useEffect(() => {
-    console.log("base url", getApiBaseUrl());
     dispatch(getCurrentUser());
   }, [dispatch]);
 
