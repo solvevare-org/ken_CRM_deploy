@@ -14,9 +14,9 @@ const StatsCards: React.FC = () => {
 
   useEffect(() => {
     // Fetch dashboard counts on mount if not yet loaded
-    dispatch(dashboardCounts());
     if (leadCount === 0 && clientCount === 0 && propertyCount === 0) {
-    }
+    	dispatch(dashboardCounts());
+	}
   }, [dispatch, leadCount, clientCount, propertyCount]);
 
   const stats = [
